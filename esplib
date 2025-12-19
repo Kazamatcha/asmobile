@@ -26,6 +26,12 @@ espModule.Config = {
     ChamsFillTransparency = 0.5,
     ChamsOutlineColor = Color3.new(1, 1, 1),
     HealthBarLerpSpeed = 0.2,
+    HealthBarColor1 = Color3.fromRGB(0, 255, 0),
+    HealthBarColor2 = Color3.fromRGB(255, 255, 0),
+    HealthBarColor3 = Color3.fromRGB(255, 0, 0),
+    ArmorBarColor1 = Color3.fromRGB(0, 0, 255),
+    ArmorBarColor2 = Color3.fromRGB(135, 206, 235),
+    ArmorBarColor3 = Color3.fromRGB(1, 0, 0),
     RingColor = Color3.fromRGB(255, 255, 255),
     ScanSpeed = 2.5,
     ScanHeight = 3.5,
@@ -39,6 +45,7 @@ espModule.State = {
     SkeletonEnabled = false,
     HealthTextEnabled = false,
     HealthBarEnabled = false,
+    ArmorBarEnabled = false,
     TracerEnabled = false,
     ChamsEnabled = false,
     RingEnabled = false
@@ -97,16 +104,27 @@ function espModule:CreateBox(_)
         HealthBarOutline = Instance.new("UIStroke"),
         HealthBar = Instance.new("Frame"),
         HealthBarGradient = Instance.new("UIGradient"),
+        ArmorText = Instance.new("TextLabel"),
+        ArmorBarBackground = Instance.new("Frame"),
+        ArmorBarOutline = Instance.new("UIStroke"),
+        ArmorBar = Instance.new("Frame"),
+        ArmorBarGradient = Instance.new("UIGradient"),
         CurrentHealth = 100,
         TargetHealth = 100,
+        CurrentArmor = 130,
+        TargetArmor = 130,
         FillFrame = Instance.new("Frame"),
         Gradient = Instance.new("UIGradient"),
         Stroke = Instance.new("UIStroke")
     }
     
+    -- Parent UI elements
     boxDrawings.HealthText.Parent = self.EspGui
     boxDrawings.HealthBarBackground.Parent = self.EspGui
     boxDrawings.HealthBar.Parent = self.EspGui
+    boxDrawings.ArmorText.Parent = self.EspGui
+    boxDrawings.ArmorBarBackground.Parent = self.EspGui
+    boxDrawings.ArmorBar.Parent = self.EspGui
     boxDrawings.FillFrame.Parent = self.EspGui
     
     boxDrawings.FillFrame.BorderSizePixel = 0
@@ -162,7 +180,7 @@ function espModule:CreateBox(_)
     boxDrawings.Distance.Visible = false
     boxDrawings.Distance.Font = 2
     
-    -- Health text (UI)
+    -- Health text
     boxDrawings.HealthText.BackgroundTransparency = 1
     boxDrawings.HealthText.TextSize = 12
     boxDrawings.HealthText.Font = Enum.Font.Code
@@ -172,6 +190,16 @@ function espModule:CreateBox(_)
     boxDrawings.HealthText.TextStrokeTransparency = 0
     boxDrawings.HealthText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     
+    -- Armor text
+    boxDrawings.ArmorText.BackgroundTransparency = 1
+    boxDrawings.ArmorText.TextSize = 12
+    boxDrawings.ArmorText.Font = Enum.Font.Code
+    boxDrawings.ArmorText.TextXAlignment = Enum.TextXAlignment.Left
+    boxDrawings.ArmorText.TextYAlignment = Enum.TextYAlignment.Center
+    boxDrawings.ArmorText.Visible = false
+    boxDrawings.ArmorText.TextStrokeTransparency = 0
+    boxDrawings.ArmorText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    
     -- Health bar background
     boxDrawings.HealthBarBackground.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
     boxDrawings.HealthBarBackground.BackgroundTransparency = 0.45
@@ -180,7 +208,7 @@ function espModule:CreateBox(_)
     
     boxDrawings.HealthBarOutline.Parent = boxDrawings.HealthBarBackground
     boxDrawings.HealthBarOutline.Color = Color3.fromRGB(0, 0, 0)
-    boxDrawings.HealthBarOutline.Transparency = 0.8
+    boxDrawings.HealthBarOutline.Transparency = 0.2
     boxDrawings.HealthBarOutline.Thickness = 1
     boxDrawings.HealthBarOutline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     
@@ -192,8 +220,34 @@ function espModule:CreateBox(_)
     boxDrawings.HealthBarGradient.Parent = boxDrawings.HealthBar
     boxDrawings.HealthBarGradient.Rotation = 90
     boxDrawings.HealthBarGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 0)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+        ColorSequenceKeypoint.new(0, self.Config.HealthBarColor1),
+        ColorSequenceKeypoint.new(0.5, self.Config.HealthBarColor2),
+        ColorSequenceKeypoint.new(1, self.Config.HealthBarColor3)
+    })
+    
+    -- Armor bar background
+    boxDrawings.ArmorBarBackground.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
+    boxDrawings.ArmorBarBackground.BackgroundTransparency = 0.45
+    boxDrawings.ArmorBarBackground.BorderSizePixel = 0
+    boxDrawings.ArmorBarBackground.Visible = false
+    
+    boxDrawings.ArmorBarOutline.Parent = boxDrawings.ArmorBarBackground
+    boxDrawings.ArmorBarOutline.Color = Color3.fromRGB(0, 0, 0)
+    boxDrawings.ArmorBarOutline.Transparency = 0.2
+    boxDrawings.ArmorBarOutline.Thickness = 1
+    boxDrawings.ArmorBarOutline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    
+    -- Armor bar
+    boxDrawings.ArmorBar.BackgroundTransparency = 0
+    boxDrawings.ArmorBar.BorderSizePixel = 0
+    boxDrawings.ArmorBar.Visible = false
+    
+    boxDrawings.ArmorBarGradient.Parent = boxDrawings.ArmorBar
+    boxDrawings.ArmorBarGradient.Rotation = 90
+    boxDrawings.ArmorBarGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, self.Config.ArmorBarColor1),
+        ColorSequenceKeypoint.new(0.5, self.Config.ArmorBarColor2),
+        ColorSequenceKeypoint.new(1, self.Config.ArmorBarColor3)
     })
     
     return boxDrawings
@@ -351,7 +405,7 @@ function espModule:HideBox(targetPlayer)
 end
 
 function espModule:UpdateBox()
-    if self.State.BoxEnabled or self.State.NameEnabled or self.State.DistanceEnabled or self.State.HealthTextEnabled or self.State.HealthBarEnabled then
+    if self.State.BoxEnabled or self.State.NameEnabled or self.State.DistanceEnabled or self.State.HealthTextEnabled or self.State.HealthBarEnabled or self.State.ArmorBarEnabled then
         if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local cameraPos = currentCamera.CFrame.Position
             
@@ -388,7 +442,7 @@ function espModule:UpdateBox()
                                     local bottomRight = centerPos + Vector2.new(width / 2, height / 2)
                                     
                                     boxDrawings.TargetHealth = otherHumanoid.Health / otherHumanoid.MaxHealth * 100
-                                    local healthPercentage = boxDrawings.CurrentHealth / 100
+                                    local healthPercentage = lerpNumber(boxDrawings.CurrentHealth, boxDrawings.TargetHealth, self.Config.HealthBarLerpSpeed) / 100
                                     
                                     if self.State.BoxEnabled then
                                         if self.Config.BoxGradientEnabled then
@@ -449,24 +503,19 @@ function espModule:UpdateBox()
                                     else
                                         boxDrawings.Distance.Visible = false
                                     end
+local barX = topLeft.X - 6
+                                    local barY = topLeft.Y
                                     
-if self.State.HealthTextEnabled or self.State.HealthBarEnabled then
+                                    if self.State.HealthBarEnabled or self.State.HealthTextEnabled then
                                         local health_per = math.floor(otherHumanoid.Health / otherHumanoid.MaxHealth * 100)
-                                        local health_color = health_per >= 75 and Color3.fromRGB(0, 255, 0) or
-                                                             health_per >= 50 and Color3.fromRGB(255, 255, 0) or
-                                                             health_per >= 25 and Color3.fromRGB(255, 170, 0) or
-                                                             Color3.fromRGB(255, 0, 0)
-                                        
-                                        local barX = topLeft.X - 6
-                                        local barY = topLeft.Y
-                                        local barHeight = height * (health_per / 100)
-                                        local textY = barY + height * (1 - health_per / 100)
-                                        
-                                        -- Clamp textY
-                                        if textY < barY then textY = barY end
-                                        if textY > barY + height - 10 then textY = barY + height - 10 end
+                                        local health_color = health_per >= 75 and self.Config.HealthBarColor1 or
+                                                             health_per >= 50 and self.Config.HealthBarColor2 or
+                                                             self.Config.HealthBarColor3
                                         
                                         if self.State.HealthTextEnabled then
+                                            local textY = barY + height * (1 - health_per / 100)
+                                            if textY < barY then textY = barY end
+                                            if textY > barY + height - 10 then textY = barY + height - 10 end
                                             boxDrawings.HealthText.Position = UDim2.new(0, barX - 20, 0, textY)
                                             boxDrawings.HealthText.Text = tostring(health_per)
                                             boxDrawings.HealthText.TextColor3 = health_color
@@ -476,8 +525,9 @@ if self.State.HealthTextEnabled or self.State.HealthBarEnabled then
                                         end
                                         
                                         if self.State.HealthBarEnabled then
-                                            boxDrawings.HealthBar.Size = UDim2.new(0, 4, 0, barHeight)
-                                            boxDrawings.HealthBar.Position = UDim2.new(0, barX, 0, barY + height - barHeight)
+                                            local health_bar_height = height * (health_per / 100)
+                                            boxDrawings.HealthBar.Size = UDim2.new(0, 4, 0, health_bar_height)
+                                            boxDrawings.HealthBar.Position = UDim2.new(0, barX, 0, barY + height - health_bar_height)
                                             boxDrawings.HealthBar.Visible = true
                                             
                                             boxDrawings.HealthBarBackground.Size = UDim2.new(0, 4, 0, height)
@@ -489,6 +539,46 @@ if self.State.HealthTextEnabled or self.State.HealthBarEnabled then
                                             boxDrawings.HealthBar.Visible = false
                                             boxDrawings.HealthBarBackground.Visible = false
                                             boxDrawings.HealthBarOutline.Enabled = false
+                                        end
+                                    end
+                                    
+                                    if self.State.ArmorBarEnabled or self.State.HealthTextEnabled then
+                                        local bodyEffects = otherCharacter:FindFirstChild("BodyEffects")
+                                        local armor = bodyEffects and bodyEffects:FindFirstChild("Armor") and bodyEffects.Armor.Value or 0
+                                        local armor_per = math.floor(armor / 130 * 100)
+                                        local armor_color = armor_per >= 75 and self.Config.ArmorBarColor1 or
+                                                            armor_per >= 50 and self.Config.ArmorBarColor2 or
+                                                            self.Config.ArmorBarColor3
+                                        
+                                        local armor_bar_x = barX - 8  -- Bên trái healthbar
+                                        
+                                        if self.State.HealthTextEnabled then
+                                            local textY = barY + height * (1 - armor_per / 100)
+                                            if textY < barY then textY = barY end
+                                            if textY > barY + height - 10 then textY = barY + height - 10 end
+                                            boxDrawings.ArmorText.Position = UDim2.new(0, armor_bar_x - 20, 0, textY)
+                                            boxDrawings.ArmorText.Text = tostring(armor_per)
+                                            boxDrawings.ArmorText.TextColor3 = armor_color
+                                            boxDrawings.ArmorText.Visible = true
+                                        else
+                                            boxDrawings.ArmorText.Visible = false
+                                        end
+                                        
+                                        if self.State.ArmorBarEnabled then
+                                            local armor_bar_height = height * (armor_per / 100)
+                                            boxDrawings.ArmorBar.Size = UDim2.new(0, 4, 0, armor_bar_height)
+                                            boxDrawings.ArmorBar.Position = UDim2.new(0, armor_bar_x, 0, barY + height - armor_bar_height)
+                                            boxDrawings.ArmorBar.Visible = true
+                                            
+                                            boxDrawings.ArmorBarBackground.Size = UDim2.new(0, 4, 0, height)
+                                            boxDrawings.ArmorBarBackground.Position = UDim2.new(0, armor_bar_x, 0, barY)
+                                            boxDrawings.ArmorBarBackground.Visible = true
+                                            
+                                            boxDrawings.ArmorBarOutline.Enabled = true
+                                        else
+                                            boxDrawings.ArmorBar.Visible = false
+                                            boxDrawings.ArmorBarBackground.Visible = false
+                                            boxDrawings.ArmorBarOutline.Enabled = false
                                         end
                                     end
                                 else
