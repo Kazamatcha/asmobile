@@ -1,3 +1,4 @@
+
 local playersService = game:GetService("Players")
 local workspaceService = game:GetService("Workspace")
 local runService = game:GetService("RunService")
@@ -9,11 +10,13 @@ espModule.__index = espModule
 
 espModule.Config = {
     TeamCheck = true,
-    ESPDistance = 1000,
+    ESPDistance = 100,
     BoxColor = Color3.new(0.403922, 0.34902, 0.701961),
     BoxGradientEnabled = false,
     BoxGradientColor1 = Color3.new(0.403922, 0.34902, 0.701961),
     BoxGradientColor2 = Color3.new(0.8, 0.4, 1),
+    BoxFillTransparency = 0.5,
+    RotateSpeed = 120,
     BoxOutlineEnabled = true,
     BoxOutlineColor = Color3.new(0, 0, 0),
     SkeletonColor = Color3.new(0.403922, 0.34902, 0.701961),
@@ -23,6 +26,10 @@ espModule.Config = {
     ChamsFillTransparency = 0.5,
     ChamsOutlineColor = Color3.new(1, 1, 1),
     HealthBarLerpSpeed = 0.2,
+    RingColor = Color3.fromRGB(255, 255, 255),
+    ScanSpeed = 2.5,
+    ScanHeight = 3.5,
+    RingRadius = 2.5
 }
 
 espModule.State = {
@@ -33,15 +40,16 @@ espModule.State = {
     HealthTextEnabled = false,
     HealthBarEnabled = false,
     TracerEnabled = false,
-    ChamsEnabled = false
+    ChamsEnabled = false,
+    RingEnabled = false
 }
 
 espModule.Caches = {
     BoxCache = {},
     SkeletonCache = {},
-    HealthCache = {},
     TracerCache = {},
-    ChamsCache = {}
+    ChamsCache = {},
+    RingCache = {}
 }
 
 local localPlayer = playersService.LocalPlayer
@@ -49,6 +57,7 @@ local currentCamera = workspaceService.CurrentCamera
 local updateInterval = 30
 local heartbeatConnection = nil
 local renderConnection = nil
+local currentRotation = 0
 
 local function safeCall(callback)
     local success, errorMessage = pcall(callback)
@@ -68,10 +77,12 @@ local function getGradientColor(color1, color2, percentage)
         lerpNumber(color1.B, color2.B, percentage)
     )
 end
+
 local function getCameraDistance(worldPosition)
     return (currentCamera.CFrame.Position - worldPosition).Magnitude
 end
-function espModule.CreateBox(self, _)
+
+function espModule:CreateBox(_)
     local boxDrawings = {
         Box = Drawing.new("Square"),
         BoxOutline = Drawing.new("Square"),
@@ -86,8 +97,27 @@ function espModule.CreateBox(self, _)
         HealthBarOutline = Drawing.new("Square"),
         HealthBar = Drawing.new("Square"),
         CurrentHealth = 100,
-        TargetHealth = 100
+        TargetHealth = 100,
+        FillFrame = Instance.new("Frame"),
+        Gradient = Instance.new("UIGradient"),
+        Stroke = Instance.new("UIStroke")
     }
+    
+    boxDrawings.FillFrame.Parent = self.EspGui
+    boxDrawings.FillFrame.BorderSizePixel = 0
+    boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency
+    boxDrawings.FillFrame.Visible = false
+    boxDrawings.Gradient.Parent = boxDrawings.FillFrame
+    boxDrawings.Gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, self.Config.BoxGradientColor1),
+        ColorSequenceKeypoint.new(0.5, self.Config.BoxGradientColor2),
+        ColorSequenceKeypoint.new(1, self.Config.BoxGradientColor1)
+    })
+    boxDrawings.Stroke.Parent = boxDrawings.FillFrame
+    boxDrawings.Stroke.Thickness = 1.2
+    boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
+    boxDrawings.Stroke.Transparency = 0
+    boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
     
     -- Main box
     boxDrawings.Box.Thickness = 1
@@ -100,9 +130,9 @@ function espModule.CreateBox(self, _)
     boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
     boxDrawings.BoxOutline.Filled = false
     boxDrawings.BoxOutline.Visible = false
-    boxDrawings.BoxOutline.Transparency = 0.5
+    boxDrawings.BoxOutline.Transparency = 0  -- Đã sửa thành 0
     
-    -- Gradient lines
+    -- Gradient lines (for fallback if needed)
     boxDrawings.BoxTop.Thickness = 1
     boxDrawings.BoxTop.Visible = false
     boxDrawings.BoxBottom.Thickness = 1
@@ -158,12 +188,9 @@ function espModule.CreateBox(self, _)
     return boxDrawings
 end
 
-function espModule.CreateSkeleton(self, targetPlayer)
+function espModule:CreateSkeleton(targetPlayer)
     local targetCharacter = targetPlayer.Character
-    local isR6 = targetCharacter and targetCharacter:FindFirstChild("Torso")
-    if isR6 then
-        isR6 = not targetCharacter:FindFirstChild("UpperTorso")
-    end
+    local isR6 = targetCharacter and targetCharacter:FindFirstChild("Torso") and not targetCharacter:FindFirstChild("UpperTorso")
     
     local skeletonLines
     if isR6 then
@@ -202,7 +229,7 @@ function espModule.CreateSkeleton(self, targetPlayer)
     return skeletonLines
 end
 
-function espModule.CreateTracer(self, _)
+function espModule:CreateTracer(_)
     local tracerLine = Drawing.new("Line")
     tracerLine.Thickness = 1
     tracerLine.Color = self.Config.TracerColor
@@ -210,7 +237,7 @@ function espModule.CreateTracer(self, _)
     return tracerLine
 end
 
-function espModule.CreateChams(self, targetPlayer)
+function espModule:CreateChams(targetPlayer)
     local highlight = Instance.new("Highlight")
     highlight.FillColor = self.Config.ChamsColor
     highlight.OutlineColor = self.Config.ChamsOutlineColor
@@ -222,7 +249,29 @@ function espModule.CreateChams(self, targetPlayer)
     return highlight
 end
 
-function espModule.ClearBox(self, targetPlayer)
+function espModule:CreateRing(player)
+    if player == localPlayer then return end
+    local holder = Instance.new("Part")
+    holder.Name = "ESP_Holder_" .. player.Name
+    holder.Transparency = 1
+    holder.CanCollide = false
+    holder.Anchored = true
+    holder.Parent = workspace
+    local ring = Instance.new("CylinderHandleAdornment")
+    ring.Adornee = holder
+    ring.AlwaysOnTop = true
+    ring.ZIndex = 10
+    ring.Color3 = self.Config.RingColor
+    ring.InnerRadius = self.Config.RingRadius - 0.1
+    ring.Radius = self.Config.RingRadius
+    ring.Height = 0.08
+    ring.CFrame = CFrame.Angles(math.rad(90), 0, 0)
+    ring.Parent = holder
+    ring.Visible = false
+    return {Holder = holder, Ring = ring, Root = nil}
+end
+
+function espModule:ClearBox(targetPlayer)
     if self.Caches.BoxCache[targetPlayer] then
         self.Caches.BoxCache[targetPlayer].Box:Remove()
         self.Caches.BoxCache[targetPlayer].BoxOutline:Remove()
@@ -236,11 +285,12 @@ function espModule.ClearBox(self, targetPlayer)
         self.Caches.BoxCache[targetPlayer].HealthBarBackground:Remove()
         self.Caches.BoxCache[targetPlayer].HealthBarOutline:Remove()
         self.Caches.BoxCache[targetPlayer].HealthBar:Remove()
+        self.Caches.BoxCache[targetPlayer].FillFrame:Destroy()
         self.Caches.BoxCache[targetPlayer] = nil
     end
 end
 
-function espModule.ClearSkeleton(self, targetPlayer)
+function espModule:ClearSkeleton(targetPlayer)
     if self.Caches.SkeletonCache[targetPlayer] then
         for _, line in pairs(self.Caches.SkeletonCache[targetPlayer]) do
             line:Remove()
@@ -249,195 +299,169 @@ function espModule.ClearSkeleton(self, targetPlayer)
     end
 end
 
-function espModule.ClearTracer(self, targetPlayer)
+function espModule:ClearTracer(targetPlayer)
     if self.Caches.TracerCache[targetPlayer] then
         self.Caches.TracerCache[targetPlayer]:Remove()
         self.Caches.TracerCache[targetPlayer] = nil
     end
 end
 
-function espModule.ClearChams(self, targetPlayer)
+function espModule:ClearChams(targetPlayer)
     if self.Caches.ChamsCache[targetPlayer] then
         self.Caches.ChamsCache[targetPlayer]:Destroy()
         self.Caches.ChamsCache[targetPlayer] = nil
     end
 end
 
-function espModule.UpdateBox(self)
+function espModule:ClearRing(targetPlayer)
+    if self.Caches.RingCache[targetPlayer] then
+        self.Caches.RingCache[targetPlayer].Holder:Destroy()
+        self.Caches.RingCache[targetPlayer] = nil
+    end
+end
+
+function espModule:UpdateBox()
     if self.State.BoxEnabled or self.State.NameEnabled or self.State.DistanceEnabled or self.State.HealthTextEnabled or self.State.HealthBarEnabled then
         if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local cameraPos = currentCamera.CFrame.Position
             
             for _, otherPlayer in ipairs(playersService:GetPlayers()) do
                 if otherPlayer ~= localPlayer then
-                    if otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid") then
-                        local otherCharacter = otherPlayer.Character
+                    local otherCharacter = otherPlayer.Character
+                    if otherCharacter and otherCharacter:FindFirstChild("HumanoidRootPart") and otherCharacter:FindFirstChild("Humanoid") then
                         local otherHumanoid = otherCharacter.Humanoid
-                        
                         if otherHumanoid.Health > 0 then
                             local otherRoot = otherCharacter.HumanoidRootPart
-                            local distance = (cameraPos - otherRoot.Position).Magnitude
-                            
-                            if self.Config.ESPDistance >= distance then
+                            local distance = getCameraDistance(otherRoot.Position)
+                            if distance <= self.Config.ESPDistance then
                                 if self.Config.TeamCheck and localPlayer.Team and otherPlayer.Team == localPlayer.Team then
                                     self:ClearBox(otherPlayer)
-                                else
-                                    if not self.Caches.BoxCache[otherPlayer] then
-                                        self.Caches.BoxCache[otherPlayer] = self:CreateBox(otherPlayer)
-                                    end
+                                    return
+                                end
+                                if not self.Caches.BoxCache[otherPlayer] then
+                                    self.Caches.BoxCache[otherPlayer] = self:CreateBox(otherPlayer)
+                                end
+                                local boxDrawings = self.Caches.BoxCache[otherPlayer]
+                                local rootScreenPos, rootOnScreen = currentCamera:WorldToViewportPoint(otherRoot.Position)
+                                if rootOnScreen then
+                                    local headPart = otherCharacter:FindFirstChild("Head")
+                                    local headTopPos = headPart and headPart.Position + Vector3.new(0, 1, 0) or otherRoot.Position + Vector3.new(0, 3, 0)
+                                    local feetPos = otherRoot.Position - Vector3.new(0, 3, 0)
+                                    local headTopScreenPos = currentCamera:WorldToViewportPoint(headTopPos)
+                                    local feetScreenPos = currentCamera:WorldToViewportPoint(feetPos)
+                                    local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
+                                    local width = height * 0.66
+                                    local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
+                                    local topLeft = centerPos - Vector2.new(width / 2, height / 2)
+                                    local topRight = centerPos + Vector2.new(width / 2, -height / 2)
+                                    local bottomLeft = centerPos + Vector2.new(-width / 2, height / 2)
+                                    local bottomRight = centerPos + Vector2.new(width / 2, height / 2)
                                     
-                                    local boxDrawings = self.Caches.BoxCache[otherPlayer]
-                                    local rootScreenPos, rootOnScreen = currentCamera:WorldToViewportPoint(otherRoot.Position)
+                                    boxDrawings.TargetHealth = otherHumanoid.Health / otherHumanoid.MaxHealth * 100
+                                    local healthPercentage = boxDrawings.CurrentHealth / 100
                                     
-                                    if rootOnScreen then
-                                        local headPart = otherCharacter:FindFirstChild("Head")
-                                        local headTopScreenPos = headPart and currentCamera:WorldToViewportPoint(headPart.Position + Vector3.new(0, 1, 0)) or currentCamera:WorldToViewportPoint(otherRoot.Position + Vector3.new(0, 3, 0))
-                                        local feetScreenPos = currentCamera:WorldToViewportPoint(otherRoot.Position - Vector3.new(0, 3, 0))
-                                        
-                                        local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
-                                        local width = height * 0.66
-                                        local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
-                                        
-                                        -- Update box
-                                        if self.State.BoxEnabled then
-                                            if self.Config.BoxGradientEnabled then
-                                                -- Gradient box using lines
-                                                local topLeft = centerPos - Vector2.new(width / 2, height / 2)
-                                                local topRight = centerPos + Vector2.new(width / 2, -height / 2)
-                                                local bottomLeft = centerPos + Vector2.new(-width / 2, height / 2)
-                                                local bottomRight = centerPos + Vector2.new(width / 2, height / 2)
-                                                
-                                                boxDrawings.BoxTop.From = topLeft
-                                                boxDrawings.BoxTop.To = topRight
-                                                boxDrawings.BoxTop.Color = self.Config.BoxGradientColor1
-                                                boxDrawings.BoxTop.Visible = true
-                                                
-                                                boxDrawings.BoxBottom.From = bottomLeft
-                                                boxDrawings.BoxBottom.To = bottomRight
-                                                boxDrawings.BoxBottom.Color = self.Config.BoxGradientColor2
-                                                boxDrawings.BoxBottom.Visible = true
-                                                
-                                                boxDrawings.BoxLeft.From = topLeft
-                                                boxDrawings.BoxLeft.To = bottomLeft
-                                                boxDrawings.BoxLeft.Color = self.Config.BoxGradientColor1
-                                                boxDrawings.BoxLeft.Visible = true
-                                                
-                                                boxDrawings.BoxRight.From = topRight
-                                                boxDrawings.BoxRight.To = bottomRight
-                                                boxDrawings.BoxRight.Color = self.Config.BoxGradientColor2
-                                                boxDrawings.BoxRight.Visible = true
-                                                
-                                                boxDrawings.Box.Visible = false
-                                            else
-                                                boxDrawings.Box.Size = Vector2.new(width, height)
-                                                boxDrawings.Box.Position = centerPos - Vector2.new(width / 2, height / 2)
-                                                boxDrawings.Box.Color = self.Config.BoxColor
-                                                boxDrawings.Box.Visible = true
-                                                
-                                                boxDrawings.BoxTop.Visible = false
-                                                boxDrawings.BoxBottom.Visible = false
-                                                boxDrawings.BoxLeft.Visible = false
-                                                boxDrawings.BoxRight.Visible = false
-                                            end
-                                            
-                                            -- Box outline
-                                            if self.Config.BoxOutlineEnabled then
-                                                boxDrawings.BoxOutline.Size = Vector2.new(width + 2, height + 2)
-                                                boxDrawings.BoxOutline.Position = centerPos - Vector2.new((width + 2) / 2, (height + 2) / 2)
-                                                boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
-                                                boxDrawings.BoxOutline.Visible = true
-                                            else
-                                                boxDrawings.BoxOutline.Visible = false
-                                            end
-                                        else
+                                    if self.State.BoxEnabled then
+                                        if self.Config.BoxGradientEnabled then
                                             boxDrawings.Box.Visible = false
                                             boxDrawings.BoxOutline.Visible = false
                                             boxDrawings.BoxTop.Visible = false
                                             boxDrawings.BoxBottom.Visible = false
                                             boxDrawings.BoxLeft.Visible = false
                                             boxDrawings.BoxRight.Visible = false
-                                        end
-                                        
-                                        -- Update name
-                                        boxDrawings.Name.Text = otherPlayer.Name
-                                        boxDrawings.Name.Position = Vector2.new(rootScreenPos.X, headTopScreenPos.Y - 18)
-                                        boxDrawings.Name.Visible = self.State.NameEnabled
-                                        
-                                        -- Update distance
-                                        boxDrawings.Distance.Text = math.floor(distance) .. "m"
-                                        boxDrawings.Distance.Position = Vector2.new(rootScreenPos.X, feetScreenPos.Y + 5)
-                                        boxDrawings.Distance.Visible = self.State.DistanceEnabled
-                                        
-                                        -- Update health bar
-                                        if self.State.HealthBarEnabled then
-                                            local healthPercent = otherHumanoid.Health / otherHumanoid.MaxHealth
-                                            local barWidth = 3
-                                            local barX = centerPos.X - width / 2 - 8
-                                            local barY = centerPos.Y - height / 2
                                             
-                                            -- Lerp health
-                                            boxDrawings.TargetHealth = healthPercent * 100
-                                            boxDrawings.CurrentHealth = lerpNumber(boxDrawings.CurrentHealth, boxDrawings.TargetHealth, self.Config.HealthBarLerpSpeed)
-                                            local lerpedPercent = boxDrawings.CurrentHealth / 100
-                                            
-                                            -- Background
-                                            boxDrawings.HealthBarBackground.Position = Vector2.new(barX, barY)
-                                            boxDrawings.HealthBarBackground.Size = Vector2.new(barWidth, height)
-                                            boxDrawings.HealthBarBackground.Visible = true
-                                            
-                                            -- Outline
-                                            boxDrawings.HealthBarOutline.Position = Vector2.new(barX - 1, barY - 1)
-                                            boxDrawings.HealthBarOutline.Size = Vector2.new(barWidth + 2, height + 2)
-                                            boxDrawings.HealthBarOutline.Visible = true
-                                            
-                                            -- Health bar with gradient color
-                                            local healthColor = getGradientColor(Color3.new(1, 0, 0), Color3.new(0, 1, 0), lerpedPercent)
-                                            boxDrawings.HealthBar.Position = Vector2.new(barX, barY + height * (1 - lerpedPercent))
-                                            boxDrawings.HealthBar.Size = Vector2.new(barWidth, height * lerpedPercent)
-                                            boxDrawings.HealthBar.Color = healthColor
-                                            boxDrawings.HealthBar.Visible = true
-                                            
-                                            if self.State.HealthTextEnabled then
-                                                boxDrawings.HealthText.Text = tostring(math.floor(boxDrawings.CurrentHealth))
-                                            
-                                                -- Đặt text ra ngoài, bên trái health bar
-                                                local textX = barX - 6
-                                                local textY = barY + height * (1 - lerpedPercent)
-                                            
-                                                -- Clamp để không vượt khỏi bar
-                                                if textY < barY then
-                                                    textY = barY
-                                                elseif textY > barY + height - 10 then
-                                                    textY = barY + height - 10
-                                                end
-                                            
-                                                boxDrawings.HealthText.Position = Vector2.new(textX, textY)
-                                                boxDrawings.HealthText.Color = healthColor
-                                                boxDrawings.HealthText.Center = false
-                                                boxDrawings.HealthText.Visible = true
-                                            else
-                                                boxDrawings.HealthText.Visible = false
-                                            end
+                                            boxDrawings.FillFrame.Position = UDim2.fromOffset(topLeft.X, topLeft.Y)
+                                            boxDrawings.FillFrame.Size = UDim2.fromOffset(width, height)
+                                            boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency
+                                            boxDrawings.FillFrame.Visible = true
+                                            boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
+                                            boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
+                                            boxDrawings.Stroke.Transparency = 0
                                         else
-                                            boxDrawings.HealthBarBackground.Visible = false
-                                            boxDrawings.HealthBarOutline.Visible = false
-                                            boxDrawings.HealthBar.Visible = false
-                                            boxDrawings.HealthText.Visible = false
+                                            boxDrawings.FillFrame.Visible = false
+                                            
+                                            boxDrawings.Box.Size = Vector2.new(width, height)
+                                            boxDrawings.Box.Position = topLeft
+                                            boxDrawings.Box.Color = self.Config.BoxColor
+                                            boxDrawings.Box.Visible = true
+                                            
+                                            if self.Config.BoxOutlineEnabled then
+                                                boxDrawings.BoxOutline.Size = Vector2.new(width, height)
+                                                boxDrawings.BoxOutline.Position = topLeft
+                                                boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
+                                                boxDrawings.BoxOutline.Visible = true
+                                                boxDrawings.BoxOutline.Transparency = 0
+                                            else
+                                                boxDrawings.BoxOutline.Visible = false
+                                            end
                                         end
                                     else
                                         boxDrawings.Box.Visible = false
                                         boxDrawings.BoxOutline.Visible = false
+                                        boxDrawings.FillFrame.Visible = false
                                         boxDrawings.BoxTop.Visible = false
                                         boxDrawings.BoxBottom.Visible = false
                                         boxDrawings.BoxLeft.Visible = false
                                         boxDrawings.BoxRight.Visible = false
+                                    end
+                                    
+                                    if self.State.NameEnabled then
+                                        boxDrawings.Name.Position = Vector2.new(centerPos.X, headTopScreenPos.Y - 20)
+                                        boxDrawings.Name.Text = otherPlayer.Name
+                                        boxDrawings.Name.Visible = true
+                                    else
                                         boxDrawings.Name.Visible = false
+                                    end
+                                    
+                                    if self.State.DistanceEnabled then
+                                        boxDrawings.Distance.Position = Vector2.new(centerPos.X, feetScreenPos.Y + 5)
+                                        boxDrawings.Distance.Text = math.floor(distance) .. " studs"
+                                        boxDrawings.Distance.Visible = true
+                                    else
                                         boxDrawings.Distance.Visible = false
+                                    end
+                                    
+                                    if self.State.HealthTextEnabled then
+                                        boxDrawings.HealthText.Position = Vector2.new(topLeft.X - 30, bottomLeft.Y - 15)
+                                        boxDrawings.HealthText.Text = tostring(math.floor(otherHumanoid.Health)) .. "/" .. tostring(otherHumanoid.MaxHealth)
+                                        boxDrawings.HealthText.Visible = true
+                                    else
                                         boxDrawings.HealthText.Visible = false
+                                    end
+                                    
+                                    if self.State.HealthBarEnabled then
+                                        local healthBarHeight = height * healthPercentage
+                                        local healthBarPos = Vector2.new(topLeft.X - 6, bottomLeft.Y - healthBarHeight)
+                                        boxDrawings.HealthBar.Size = Vector2.new(3, healthBarHeight)
+                                        boxDrawings.HealthBar.Position = healthBarPos
+                                        boxDrawings.HealthBar.Color = Color3.new(1 - healthPercentage, healthPercentage, 0)
+                                        boxDrawings.HealthBar.Visible = true
+                                        
+                                        boxDrawings.HealthBarBackground.Size = Vector2.new(3, height)
+                                        boxDrawings.HealthBarBackground.Position = Vector2.new(topLeft.X - 6, topLeft.Y)
+                                        boxDrawings.HealthBarBackground.Visible = true
+                                        
+                                        boxDrawings.HealthBarOutline.Size = Vector2.new(5, height + 2)
+                                        boxDrawings.HealthBarOutline.Position = Vector2.new(topLeft.X - 7, topLeft.Y - 1)
+                                        boxDrawings.HealthBarOutline.Visible = true
+                                    else
+                                        boxDrawings.HealthBar.Visible = false
                                         boxDrawings.HealthBarBackground.Visible = false
                                         boxDrawings.HealthBarOutline.Visible = false
-                                        boxDrawings.HealthBar.Visible = false
                                     end
+                                else
+                                    boxDrawings.Box.Visible = false
+                                    boxDrawings.BoxOutline.Visible = false
+                                    boxDrawings.FillFrame.Visible = false
+                                    boxDrawings.Name.Visible = false
+                                    boxDrawings.Distance.Visible = false
+                                    boxDrawings.HealthText.Visible = false
+                                    boxDrawings.HealthBar.Visible = false
+                                    boxDrawings.HealthBarBackground.Visible = false
+                                    boxDrawings.HealthBarOutline.Visible = false
+                                    boxDrawings.BoxTop.Visible = false
+                                    boxDrawings.BoxBottom.Visible = false
+                                    boxDrawings.BoxLeft.Visible = false
+                                    boxDrawings.BoxRight.Visible = false
                                 end
                             else
                                 self:ClearBox(otherPlayer)
@@ -450,19 +474,11 @@ function espModule.UpdateBox(self)
                     end
                 end
             end
-        else
-            for player, _ in pairs(self.Caches.BoxCache) do
-                self:ClearBox(player)
-            end
-        end
-    else
-        for player, _ in pairs(self.Caches.BoxCache) do
-            self:ClearBox(player)
         end
     end
 end
 
-function espModule.UpdateSkeleton(self)
+function espModule:UpdateSkeleton()
     if not self.State.SkeletonEnabled then
         for player, _ in pairs(self.Caches.SkeletonCache) do
             self:ClearSkeleton(player)
@@ -481,25 +497,143 @@ function espModule.UpdateSkeleton(self)
     
     for _, otherPlayer in ipairs(playersService:GetPlayers()) do
         if otherPlayer ~= localPlayer then
-            if otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid") then
-                local otherCharacter = otherPlayer.Character
-                
-                if otherCharacter.Humanoid.Health > 0 then
+            local otherCharacter = otherPlayer.Character
+            if otherCharacter and otherCharacter:FindFirstChild("HumanoidRootPart") and otherCharacter:FindFirstChild("Humanoid") then
+                local otherHumanoid = otherCharacter.Humanoid
+                if otherHumanoid.Health > 0 then
                     local otherRoot = otherCharacter.HumanoidRootPart
-                    
-                    if (cameraPos - otherRoot.Position).Magnitude <= self.Config.ESPDistance then
+                    local distance = getCameraDistance(otherRoot.Position)
+                    if distance <= self.Config.ESPDistance then
                         if self.Config.TeamCheck and localPlayer.Team and otherPlayer.Team == localPlayer.Team then
                             self:ClearSkeleton(otherPlayer)
-                        else
-                            if not self.Caches.SkeletonCache[otherPlayer] then
-                                self.Caches.SkeletonCache[otherPlayer] = self:CreateSkeleton(otherPlayer)
+                            return
+                        end
+                        if not self.Caches.SkeletonCache[otherPlayer] then
+                            self.Caches.SkeletonCache[otherPlayer] = self:CreateSkeleton(otherPlayer)
+                        end
+                        local skeletonLines = self.Caches.SkeletonCache[otherPlayer]
+                        local isR6 = otherCharacter:FindFirstChild("Torso") and not otherCharacter:FindFirstChild("UpperTorso")
+                        
+                        local function getScreenPos(partName)
+                            local part = otherCharacter:FindFirstChild(partName)
+                            if part then
+                                local screenPos, onScreen = currentCamera:WorldToViewportPoint(part.Position)
+                                return Vector2.new(screenPos.X, screenPos.Y), onScreen
                             end
+                            return Vector2.new(0, 0), false
+                        end
+                        
+                        local allOnScreen = true
+                        
+                        if isR6 then
+                            local headPos, headOn = getScreenPos("Head")
+                            local torsoPos, torsoOn = getScreenPos("Torso")
+                            local leftArmPos, leftArmOn = getScreenPos("Left Arm")
+                            local rightArmPos, rightArmOn = getScreenPos("Right Arm")
+                            local leftLegPos, leftLegOn = getScreenPos("Left Leg")
+                            local rightLegPos, rightLegOn = getScreenPos("Right Leg")
                             
-                            local skeletonLines = self.Caches.SkeletonCache[otherPlayer]
-                            local isR6 = otherCharacter:FindFirstChild("Torso") and not otherCharacter:FindFirstChild("UpperTorso")
+                            allOnScreen = headOn and torsoOn and leftArmOn and rightArmOn and leftLegOn and rightLegOn
                             
-                            -- Rest of skeleton update code remains the same...
-                            -- (Keeping the original skeleton logic to maintain compatibility)
+                            skeletonLines.HeadToTorso.From = headPos
+                            skeletonLines.HeadToTorso.To = torsoPos
+                            skeletonLines.HeadToTorso.Visible = allOnScreen
+                            
+                            skeletonLines.TorsoToLeftArm.From = torsoPos
+                            skeletonLines.TorsoToLeftArm.To = leftArmPos
+                            skeletonLines.TorsoToLeftArm.Visible = allOnScreen
+                            
+                            skeletonLines.TorsoToRightArm.From = torsoPos
+                            skeletonLines.TorsoToRightArm.To = rightArmPos
+                            skeletonLines.TorsoToRightArm.Visible = allOnScreen
+                            
+                            skeletonLines.TorsoToLeftLeg.From = torsoPos
+                            skeletonLines.TorsoToLeftLeg.To = leftLegPos
+                            skeletonLines.TorsoToLeftLeg.Visible = allOnScreen
+                            
+                            skeletonLines.TorsoToRightLeg.From = torsoPos
+                            skeletonLines.TorsoToRightLeg.To = rightLegPos
+                            skeletonLines.TorsoToRightLeg.Visible = allOnScreen
+                        else
+                            local headPos, headOn = getScreenPos("Head")
+                            local upperTorsoPos, upperTorsoOn = getScreenPos("UpperTorso")
+                            local lowerTorsoPos, lowerTorsoOn = getScreenPos("LowerTorso")
+                            local leftUpperArmPos, leftUpperArmOn = getScreenPos("LeftUpperArm")
+                            local leftLowerArmPos, leftLowerArmOn = getScreenPos("LeftLowerArm")
+                            local leftHandPos, leftHandOn = getScreenPos("LeftHand")
+                            local rightUpperArmPos, rightUpperArmOn = getScreenPos("RightUpperArm")
+                            local rightLowerArmPos, rightLowerArmOn = getScreenPos("RightLowerArm")
+                            local rightHandPos, rightHandOn = getScreenPos("RightHand")
+                            local leftUpperLegPos, leftUpperLegOn = getScreenPos("LeftUpperLeg")
+                            local leftLowerLegPos, leftLowerLegOn = getScreenPos("LeftLowerLeg")
+                            local leftFootPos, leftFootOn = getScreenPos("LeftFoot")
+                            local rightUpperLegPos, rightUpperLegOn = getScreenPos("RightUpperLeg")
+                            local rightLowerLegPos, rightLowerLegOn = getScreenPos("RightLowerLeg")
+                            local rightFootPos, rightFootOn = getScreenPos("RightFoot")
+                            
+                            allOnScreen = headOn and upperTorsoOn and lowerTorsoOn and leftUpperArmOn and leftLowerArmOn and leftHandOn and rightUpperArmOn and rightLowerArmOn and rightHandOn and leftUpperLegOn and leftLowerLegOn and leftFootOn and rightUpperLegOn and rightLowerLegOn and rightFootOn
+                            
+                            skeletonLines.HeadToUpperTorso.From = headPos
+                            skeletonLines.HeadToUpperTorso.To = upperTorsoPos
+                            skeletonLines.HeadToUpperTorso.Visible = allOnScreen
+                            
+                            skeletonLines.UpperTorsoToLowerTorso.From = upperTorsoPos
+                            skeletonLines.UpperTorsoToLowerTorso.To = lowerTorsoPos
+                            skeletonLines.UpperTorsoToLowerTorso.Visible = allOnScreen
+                            
+                            skeletonLines.UpperTorsoToLeftUpperArm.From = upperTorsoPos
+                            skeletonLines.UpperTorsoToLeftUpperArm.To = leftUpperArmPos
+                            skeletonLines.UpperTorsoToLeftUpperArm.Visible = allOnScreen
+                            
+                            skeletonLines.LeftUpperArmToLeftLowerArm.From = leftUpperArmPos
+                            skeletonLines.LeftUpperArmToLeftLowerArm.To = leftLowerArmPos
+                            skeletonLines.LeftUpperArmToLeftLowerArm.Visible = allOnScreen
+                            
+                            skeletonLines.LeftLowerArmToLeftHand.From = leftLowerArmPos
+                            skeletonLines.LeftLowerArmToLeftHand.To = leftHandPos
+                            skeletonLines.LeftLowerArmToLeftHand.Visible = allOnScreen
+                            
+                            skeletonLines.UpperTorsoToRightUpperArm.From = upperTorsoPos
+                            skeletonLines.UpperTorsoToRightUpperArm.To = rightUpperArmPos
+                            skeletonLines.UpperTorsoToRightUpperArm.Visible = allOnScreen
+                            
+                            skeletonLines.RightUpperArmToRightLowerArm.From = rightUpperArmPos
+                            skeletonLines.RightUpperArmToRightLowerArm.To = rightLowerArmPos
+                            skeletonLines.RightUpperArmToRightLowerArm.Visible = allOnScreen
+                            
+                            skeletonLines.RightLowerArmToRightHand.From = rightLowerArmPos
+                            skeletonLines.RightLowerArmToRightHand.To = rightHandPos
+                            skeletonLines.RightLowerArmToRightHand.Visible = allOnScreen
+                            
+                            skeletonLines.LowerTorsoToLeftUpperLeg.From = lowerTorsoPos
+                            skeletonLines.LowerTorsoToLeftUpperLeg.To = leftUpperLegPos
+                            skeletonLines.LowerTorsoToLeftUpperLeg.Visible = allOnScreen
+                            
+                            skeletonLines.LeftUpperLegToLeftLowerLeg.From = leftUpperLegPos
+                            skeletonLines.LeftUpperLegToLeftLowerLeg.To = leftLowerLegPos
+                            skeletonLines.LeftUpperLegToLeftLowerLeg.Visible = allOnScreen
+                            
+                            skeletonLines.LeftLowerLegToLeftFoot.From = leftLowerLegPos
+                            skeletonLines.LeftLowerLegToLeftFoot.To = leftFootPos
+                            skeletonLines.LeftLowerLegToLeftFoot.Visible = allOnScreen
+                            
+                            skeletonLines.LowerTorsoToRightUpperLeg.From = lowerTorsoPos
+                            skeletonLines.LowerTorsoToRightUpperLeg.To = rightUpperLegPos
+                            skeletonLines.LowerTorsoToRightUpperLeg.Visible = allOnScreen
+                            
+                            skeletonLines.RightUpperLegToRightLowerLeg.From = rightUpperLegPos
+                            skeletonLines.RightUpperLegToRightLowerLeg.To = rightLowerLegPos
+                            skeletonLines.RightUpperLegToRightLowerLeg.Visible = allOnScreen
+                            
+                            skeletonLines.RightLowerLegToRightFoot.From = rightLowerLegPos
+                            skeletonLines.RightLowerLegToRightFoot.To = rightFootPos
+                            skeletonLines.RightLowerLegToRightFoot.Visible = allOnScreen
+                        end
+                        
+                        if not allOnScreen then
+                            for _, line in pairs(skeletonLines) do
+                                line.Visible = false
+                            end
                         end
                     else
                         self:ClearSkeleton(otherPlayer)
@@ -514,7 +648,7 @@ function espModule.UpdateSkeleton(self)
     end
 end
 
-function espModule.UpdateTracer(self)
+function espModule:UpdateTracer()
     if not self.State.TracerEnabled then
         for player, _ in pairs(self.Caches.TracerCache) do
             self:ClearTracer(player)
@@ -543,27 +677,25 @@ function espModule.UpdateTracer(self)
     
     for _, otherPlayer in ipairs(playersService:GetPlayers()) do
         if otherPlayer ~= localPlayer then
-            if otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid") then
-                local otherCharacter = otherPlayer.Character
-                
-                if otherCharacter.Humanoid.Health > 0 then
+            local otherCharacter = otherPlayer.Character
+            if otherCharacter and otherCharacter:FindFirstChild("HumanoidRootPart") and otherCharacter:FindFirstChild("Humanoid") then
+                local otherHumanoid = otherCharacter.Humanoid
+                if otherHumanoid.Health > 0 then
                     local tracerTarget = otherCharacter:FindFirstChild("Head") or otherCharacter.HumanoidRootPart
-                    
-                    if (cameraPos - tracerTarget.Position).Magnitude <= self.Config.ESPDistance then
+                    local distance = getCameraDistance(tracerTarget.Position)
+                    if distance <= self.Config.ESPDistance then
                         if self.Config.TeamCheck and localPlayer.Team and otherPlayer.Team == localPlayer.Team then
                             self:ClearTracer(otherPlayer)
-                        else
-                            if not self.Caches.TracerCache[otherPlayer] then
-                                self.Caches.TracerCache[otherPlayer] = self:CreateTracer(otherPlayer)
-                            end
-                            
-                            local tracerLine = self.Caches.TracerCache[otherPlayer]
-                            local targetScreenPos, targetOnScreen = currentCamera:WorldToViewportPoint(tracerTarget.Position)
-                            
-                            tracerLine.From = originPos
-                            tracerLine.To = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
-                            tracerLine.Visible = targetOnScreen
+                            return
                         end
+                        if not self.Caches.TracerCache[otherPlayer] then
+                            self.Caches.TracerCache[otherPlayer] = self:CreateTracer(otherPlayer)
+                        end
+                        local tracerLine = self.Caches.TracerCache[otherPlayer]
+                        local targetScreenPos, targetOnScreen = currentCamera:WorldToViewportPoint(tracerTarget.Position)
+                        tracerLine.From = originPos
+                        tracerLine.To = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
+                        tracerLine.Visible = targetOnScreen
                     else
                         self:ClearTracer(otherPlayer)
                     end
@@ -577,7 +709,7 @@ function espModule.UpdateTracer(self)
     end
 end
 
-function espModule.UpdateChams(self)
+function espModule:UpdateChams()
     if not self.State.ChamsEnabled then
         for player, _ in pairs(self.Caches.ChamsCache) do
             self:ClearChams(player)
@@ -596,16 +728,18 @@ function espModule.UpdateChams(self)
     
     for _, otherPlayer in ipairs(playersService:GetPlayers()) do
         if otherPlayer ~= localPlayer then
-            if otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") and otherPlayer.Character:FindFirstChild("Humanoid") then
-                local otherCharacter = otherPlayer.Character
-                
-                if otherCharacter.Humanoid.Health > 0 then
+            local otherCharacter = otherPlayer.Character
+            if otherCharacter and otherCharacter:FindFirstChild("HumanoidRootPart") and otherCharacter:FindFirstChild("Humanoid") then
+                local otherHumanoid = otherCharacter.Humanoid
+                if otherHumanoid.Health > 0 then
                     local otherRoot = otherCharacter.HumanoidRootPart
-                    
-                    if (cameraPos - otherRoot.Position).Magnitude <= self.Config.ESPDistance then
+                    local distance = getCameraDistance(otherRoot.Position)
+                    if distance <= self.Config.ESPDistance then
                         if self.Config.TeamCheck and localPlayer.Team and otherPlayer.Team == localPlayer.Team then
                             self:ClearChams(otherPlayer)
-                        elseif not self.Caches.ChamsCache[otherPlayer] then
+                            return
+                        end
+                        if not self.Caches.ChamsCache[otherPlayer] then
                             self.Caches.ChamsCache[otherPlayer] = self:CreateChams(otherPlayer)
                         end
                     else
@@ -621,80 +755,124 @@ function espModule.UpdateChams(self)
     end
 end
 
-function espModule.new()
-    return setmetatable({}, espModule)
-end
-
-function espModule.InitiateBox(self, newColor, enable)
-    self.State.BoxEnabled = enable ~= false
-    if newColor then
-        self.Config.BoxColor = newColor
-        for _, drawings in pairs(self.Caches.BoxCache) do
-            drawings.Box.Color = newColor
+function espModule:UpdateRing()
+    if not self.State.RingEnabled then
+        for player, _ in pairs(self.Caches.RingCache) do
+            self:ClearRing(player)
         end
+        return
     end
-end
-
-function espModule.InitiateName(self, enable)
-    self.State.NameEnabled = enable == true
-end
-
-function espModule.InitiateDistance(self, enable)
-    self.State.DistanceEnabled = enable == true
-end
-
-function espModule.InitiateSkeleton(self, newColor, enable)
-    self.State.SkeletonEnabled = enable ~= false
-    if newColor then
-        self.Config.SkeletonColor = newColor
-        for _, lines in pairs(self.Caches.SkeletonCache) do
-            for _, line in pairs(lines) do
-                line.Color = newColor
+    
+    if not (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) then
+        for player, _ in pairs(self.Caches.RingCache) do
+            self:ClearRing(player)
+        end
+        return
+    end
+    
+    for _, otherPlayer in ipairs(playersService:GetPlayers()) do
+        if otherPlayer ~= localPlayer then
+            local otherCharacter = otherPlayer.Character
+            if otherCharacter and otherCharacter:FindFirstChild("HumanoidRootPart") and otherCharacter:FindFirstChild("Humanoid") then
+                local otherHumanoid = otherCharacter.Humanoid
+                if otherHumanoid.Health > 0 then
+                    local otherRoot = otherCharacter.HumanoidRootPart
+                    local distance = getCameraDistance(otherRoot.Position)
+                    if distance <= self.Config.ESPDistance then
+                        if self.Config.TeamCheck and localPlayer.Team and otherPlayer.Team == localPlayer.Team then
+                            self:ClearRing(otherPlayer)
+                            return
+                        end
+                        if not self.Caches.RingCache[otherPlayer] then
+                            self.Caches.RingCache[otherPlayer] = self:CreateRing(otherPlayer)
+                        end
+                        local data = self.Caches.RingCache[otherPlayer]
+                        data.Root = otherRoot
+                        data.Ring.Visible = true
+                    else
+                        if self.Caches.RingCache[otherPlayer] then
+                            self.Caches.RingCache[otherPlayer].Ring.Visible = false
+                        end
+                    end
+                else
+                    self:ClearRing(otherPlayer)
+                end
+            else
+                self:ClearRing(otherPlayer)
             end
         end
     end
 end
 
-function espModule.InitiateHealthText(self, enable)
-    self.State.HealthTextEnabled = enable == true
-end
-
-function espModule.InitiateHealthBar(self, enable)
-    self.State.HealthBarEnabled = enable == true
-end
-
-function espModule.InitiateTracer(self, newColor, newOrigin, enable)
-    self.State.TracerEnabled = enable ~= false
-    if newColor then
-        self.Config.TracerColor = newColor
-        for _, line in pairs(self.Caches.TracerCache) do
-            line.Color = newColor
+function espModule:UpdateAnimations(dt)
+    local t = tick()
+    currentRotation = (currentRotation - self.Config.RotateSpeed * dt) % 360
+    for _, boxDrawings in pairs(self.Caches.BoxCache) do
+        if self.Config.BoxGradientEnabled then
+            boxDrawings.Gradient.Rotation = currentRotation
         end
+        boxDrawings.CurrentHealth = lerpNumber(boxDrawings.CurrentHealth, boxDrawings.TargetHealth, self.Config.HealthBarLerpSpeed)
     end
-    if newOrigin then
-        self.Config.TracerOrigin = newOrigin
-    end
-end
-
-function espModule.InitiateChams(self, newColor, enable)
-    self.State.ChamsEnabled = enable ~= false
-    if newColor then
-        self.Config.ChamsColor = newColor
-        for _, highlight in pairs(self.Caches.ChamsCache) do
-            highlight.FillColor = newColor
+    for _, data in pairs(self.Caches.RingCache) do
+        if data.Root and data.Ring.Visible then
+            local yOffset = math.sin(t * self.Config.ScanSpeed) * self.Config.ScanHeight
+            data.Holder.CFrame = data.Root.CFrame * CFrame.new(0, yOffset, 0)
+            data.Ring.Transparency = 0.2 + (math.abs(math.sin(t * self.Config.ScanSpeed)) * 0.4)
         end
     end
 end
 
-function espModule.SetDistance(self, newDistance)
-    self.Config.ESPDistance = newDistance
+function espModule:InitiateBox(color)
+    self.Config.BoxColor = color or self.Config.BoxColor
+    self.State.BoxEnabled = true
 end
 
-function espModule.TeamCheck(self, enable)
-    self.Config.TeamCheck = enable
+function espModule:InitiateName(value)
+    self.State.NameEnabled = value
 end
 
-function espModule.Cleanup(self)
+function espModule:InitiateDistance(value)
+    self.State.DistanceEnabled = value
+end
+
+function espModule:InitiateSkeleton(color)
+    self.Config.SkeletonColor = color or self.Config.SkeletonColor
+    self.State.SkeletonEnabled = true
+end
+
+function espModule:InitiateHealthText(value)
+    self.State.HealthTextEnabled = value
+end
+
+function espModule:InitiateHealthBar(value)
+    self.State.HealthBarEnabled = value
+end
+
+function espModule:InitiateTracer(color, origin)
+    self.Config.TracerColor = color or self.Config.TracerColor
+    self.Config.TracerOrigin = origin or self.Config.TracerOrigin
+    self.State.TracerEnabled = true
+end
+
+function espModule:InitiateChams(color)
+    self.Config.ChamsColor = color or self.Config.ChamsColor
+    self.State.ChamsEnabled = true
+end
+
+function espModule:InitiateRing(color)
+    self.Config.RingColor = color or self.Config.RingColor
+    self.State.RingEnabled = true
+end
+
+function espModule:TeamCheck(value)
+    self.Config.TeamCheck = value
+end
+
+function espModule:SetDistance(value)
+    self.Config.ESPDistance = value
+end
+
+function espModule:Cleanup()
     for player, _ in pairs(self.Caches.BoxCache) do
         self:ClearBox(player)
     end
@@ -707,15 +885,21 @@ function espModule.Cleanup(self)
     for player, _ in pairs(self.Caches.ChamsCache) do
         self:ClearChams(player)
     end
+    for player, _ in pairs(self.Caches.RingCache) do
+        self:ClearRing(player)
+    end
 end
 
-function espModule.Destroy(self)
+function espModule:Destroy()
     self:Cleanup()
     if heartbeatConnection then
         heartbeatConnection:Disconnect()
     end
     if renderConnection then
         renderConnection:Disconnect()
+    end
+    if self.EspGui then
+        self.EspGui:Destroy()
     end
     self.State.BoxEnabled = false
     self.State.NameEnabled = false
@@ -725,15 +909,23 @@ function espModule.Destroy(self)
     self.State.HealthBarEnabled = false
     self.State.TracerEnabled = false
     self.State.ChamsEnabled = false
+    self.State.RingEnabled = false
 end
 
-function espModule.Initialize(self)
+function espModule:Initialize()
+    self.EspGui = Instance.new("ScreenGui")
+    self.EspGui.Name = "MatchaEspGui"
+    self.EspGui.Parent = localPlayer.PlayerGui
+    self.EspGui.IgnoreGuiInset = true
+    self.EspGui.ResetOnSpawn = false
+    
     playersService.PlayerRemoving:Connect(function(removedPlayer)
         safeCall(function()
             self:ClearBox(removedPlayer)
             self:ClearSkeleton(removedPlayer)
             self:ClearTracer(removedPlayer)
             self:ClearChams(removedPlayer)
+            self:ClearRing(removedPlayer)
         end)
     end)
     
@@ -746,6 +938,7 @@ function espModule.Initialize(self)
                         self:ClearSkeleton(addedPlayer)
                         self:ClearTracer(addedPlayer)
                         self:ClearChams(addedPlayer)
+                        self:ClearRing(addedPlayer)
                     end)
                 end
             end)
@@ -758,6 +951,7 @@ function espModule.Initialize(self)
                         self:ClearSkeleton(addedPlayer)
                         self:ClearTracer(addedPlayer)
                         self:ClearChams(addedPlayer)
+                        self:ClearRing(addedPlayer)
                     end)
                 end)
             end
@@ -772,18 +966,14 @@ function espModule.Initialize(self)
         end
     end)
     
-    renderConnection = runService.RenderStepped:Connect(function()
+    renderConnection = runService.RenderStepped:Connect(function(dt)
         safeCall(function()
             self:UpdateBox()
-        end)
-        safeCall(function()
             self:UpdateSkeleton()
-        end)
-        safeCall(function()
             self:UpdateTracer()
-        end)
-        safeCall(function()
             self:UpdateChams()
+            self:UpdateRing()
+            self:UpdateAnimations(dt)
         end)
     end)
 end
