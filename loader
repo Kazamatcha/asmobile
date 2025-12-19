@@ -5340,49 +5340,47 @@ if Client.Character then
 end
 
 RunService.RenderStepped:Connect(function(deltaTime)
+
     if not (aimContainer and topLine and bottomLine and leftLine and rightLine and textLabel) then
         return
     end
     
     time = time + deltaTime
     
-    -- Determine position based on follow target setting
-    local targetX, targetY
-	if isFollowTargetEnabled then
-	    if matchacc.TargetAim.Target ~= "None" then
-	        
-	        targetAim = Players:FindFirstChild(matchacc.TargetAim.Target)
-	
-	        if targetAim and targetAim.Character then
-	            
-	            local aimPart =
-	                targetAim.Character:FindFirstChild("UpperTorso") or
-	                targetAim.Character:FindFirstChild("Torso") or
-	                targetAim.Character:FindFirstChild("HumanoidRootPart")
-	
-	            if aimPart then
-	                
-	                local screenPos, onScreen = Camera:WorldToScreenPoint(aimPart.Position)
-	                
-	                if onScreen then
-	                    targetX = screenPos.X
-	                    targetY = screenPos.Y
-	                else
-	                    targetX = mouse.X
-	                    targetY = mouse.Y
-	                end
-	
-	            end
-	        end
-	
-	    else
-	        targetX = mouse.X
-	        targetY = mouse.Y
-	    end
-	end
+    -- fallback mouse position always safe
+    local mouseX = mouse.X
+    local mouseY = mouse.Y    
     
-    aimContainer.Position = UDim2.new(0, targetX, 0, targetY)
-    textLabel.Position = UDim2.new(0, targetX - 70, 0, targetY + 50)
+    -- default (no follow target)
+    local targetX = mouseX
+    local targetY = mouseY
+    
+
+    -- if following target, try override
+    if isFollowTargetEnabled and matchacc and matchacc.TargetAim and matchacc.TargetAim.Target ~= "None" then
+        
+        local targetPlayer = Players:FindFirstChild(matchacc.TargetAim.Target)
+
+        if targetPlayer and targetPlayer.Character then
+            local aimPart = 
+                  targetPlayer.Character:FindFirstChild("UpperTorso")
+               or targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+               or targetPlayer.Character:FindFirstChild("Torso")
+
+            if aimPart then
+                local screenPos, onScreen = Camera:WorldToScreenPoint(aimPart.Position)
+                if onScreen then
+                    targetX = screenPos.X
+                    targetY = screenPos.Y
+                end
+            end
+        end
+    end
+    
+
+    -- ALWAYS SAFE NOW
+    aimContainer.Position = UDim2.new(0,targetX,0,targetY)
+    textLabel.Position = UDim2.new(0,targetX - 70,0,targetY + 50)
     
     rotationProgress = (rotationProgress + currentRotationSpeed * deltaTime) % 1
     currentRotationSpeed = calculateRotationSpeed(rotationProgress)
