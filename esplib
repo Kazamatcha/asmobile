@@ -10,7 +10,7 @@ espModule.__index = espModule
 
 espModule.Config = {
     TeamCheck = true,
-    ESPDistance = 100,
+    ESPDistance = 1000,
     BoxColor = Color3.new(0.403922, 0.34902, 0.701961),
     BoxGradientEnabled = false,
     BoxGradientColor1 = Color3.new(0.403922, 0.34902, 0.701961),
@@ -92,10 +92,10 @@ function espModule:CreateBox(_)
         BoxRight = Drawing.new("Line"),
         Name = Drawing.new("Text"),
         Distance = Drawing.new("Text"),
-        HealthText = Drawing.new("Text"),
-        HealthBarBackground = Drawing.new("Square"),
-        HealthBarOutline = Drawing.new("Square"),
-        HealthBar = Drawing.new("Square"),
+        HealthText = Instance.new("TextLabel"),  -- Thay bằng TextLabel UI cho đẹp hơn
+        HealthBarBackground = Instance.new("Frame"),  -- Frame cho bg
+        HealthBarOutline = Instance.new("Frame"),  -- Frame cho outline nếu cần
+        HealthBar = Instance.new("Frame"),  -- Frame cho bar
         CurrentHealth = 100,
         TargetHealth = 100,
         FillFrame = Instance.new("Frame"),
@@ -103,9 +103,15 @@ function espModule:CreateBox(_)
         Stroke = Instance.new("UIStroke")
     }
     
+    -- Parent UI elements vào EspGui
+    boxDrawings.HealthText.Parent = self.EspGui
+    boxDrawings.HealthBarBackground.Parent = self.EspGui
+    boxDrawings.HealthBarOutline.Parent = self.EspGui
+    boxDrawings.HealthBar.Parent = self.EspGui
     boxDrawings.FillFrame.Parent = self.EspGui
+    
     boxDrawings.FillFrame.BorderSizePixel = 0
-    boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency
+    boxDrawings.FillFrame.BackgroundTransparency = 1
     boxDrawings.FillFrame.Visible = false
     boxDrawings.Gradient.Parent = boxDrawings.FillFrame
     boxDrawings.Gradient.Color = ColorSequence.new({
@@ -119,7 +125,7 @@ function espModule:CreateBox(_)
     boxDrawings.Stroke.Transparency = 0
     boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
     
-    -- Main box
+    -- Main box (Drawing)
     boxDrawings.Box.Thickness = 1
     boxDrawings.Box.Color = self.Config.BoxColor
     boxDrawings.Box.Filled = false
@@ -130,9 +136,9 @@ function espModule:CreateBox(_)
     boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
     boxDrawings.BoxOutline.Filled = false
     boxDrawings.BoxOutline.Visible = false
-    boxDrawings.BoxOutline.Transparency = 0  -- Đã sửa thành 0
+    boxDrawings.BoxOutline.Transparency = 0  -- Sửa thành 0
     
-    -- Gradient lines (for fallback if needed)
+    -- Gradient lines (fallback)
     boxDrawings.BoxTop.Thickness = 1
     boxDrawings.BoxTop.Visible = false
     boxDrawings.BoxBottom.Thickness = 1
@@ -142,7 +148,7 @@ function espModule:CreateBox(_)
     boxDrawings.BoxRight.Thickness = 1
     boxDrawings.BoxRight.Visible = false
     
-    -- Text elements
+    -- Text elements (Drawing cho name/distance, UI cho health text)
     boxDrawings.Name.Size = 13
     boxDrawings.Name.Color = Color3.new(1, 1, 1)
     boxDrawings.Name.Outline = true
@@ -157,32 +163,30 @@ function espModule:CreateBox(_)
     boxDrawings.Distance.Visible = false
     boxDrawings.Distance.Font = 2
     
-    boxDrawings.HealthText.Size = 12
-    boxDrawings.HealthText.Color = Color3.new(1, 1, 1)
-    boxDrawings.HealthText.Outline = true
-    boxDrawings.HealthText.Center = true
+    -- Health text (UI TextLabel, font default)
+    boxDrawings.HealthText.Size = UDim2.new(0, 100, 0, 20)
+    boxDrawings.HealthText.BackgroundTransparency = 1
+    boxDrawings.HealthText.TextColor3 = Color3.new(1, 1, 1)
+    boxDrawings.HealthText.TextSize = 12
+    boxDrawings.HealthText.Font = Enum.Font.Code  -- Hoặc font tùy chỉnh nếu có
     boxDrawings.HealthText.Visible = false
-    boxDrawings.HealthText.Font = 3
+    boxDrawings.HealthText.TextXAlignment = Enum.TextXAlignment.Left
     
-    -- Health bar background
-    boxDrawings.HealthBarBackground.Size = Vector2.new(3, 50)
-    boxDrawings.HealthBarBackground.Color = Color3.new(0.1, 0.1, 0.1)
-    boxDrawings.HealthBarBackground.Filled = true
-    boxDrawings.HealthBarBackground.Transparency = 0.3
+    -- Health bar background (UI Frame, như script mới)
+    boxDrawings.HealthBarBackground.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
+    boxDrawings.HealthBarBackground.BackgroundTransparency = 0.45
+    boxDrawings.HealthBarBackground.BorderSizePixel = 0
     boxDrawings.HealthBarBackground.Visible = false
     
-    -- Health bar outline
-    boxDrawings.HealthBarOutline.Size = Vector2.new(5, 52)
-    boxDrawings.HealthBarOutline.Color = Color3.new(0, 0, 0)
-    boxDrawings.HealthBarOutline.Filled = false
-    boxDrawings.HealthBarOutline.Thickness = 1
+    -- Health bar outline (UI Frame hoặc UIStroke, nhưng dùng Frame cho đơn giản)
+    boxDrawings.HealthBarOutline.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    boxDrawings.HealthBarOutline.BackgroundTransparency = 0.8
+    boxDrawings.HealthBarOutline.BorderSizePixel = 0
     boxDrawings.HealthBarOutline.Visible = false
-    boxDrawings.HealthBarOutline.Transparency = 0.8
     
-    -- Health bar
-    boxDrawings.HealthBar.Size = Vector2.new(3, 50)
-    boxDrawings.HealthBar.Color = Color3.new(0, 1, 0)
-    boxDrawings.HealthBar.Filled = true
+    -- Health bar (UI Frame, color lerp)
+    boxDrawings.HealthBar.BackgroundTransparency = 0
+    boxDrawings.HealthBar.BorderSizePixel = 0
     boxDrawings.HealthBar.Visible = false
     
     return boxDrawings
@@ -281,10 +285,10 @@ function espModule:ClearBox(targetPlayer)
         self.Caches.BoxCache[targetPlayer].BoxRight:Remove()
         self.Caches.BoxCache[targetPlayer].Name:Remove()
         self.Caches.BoxCache[targetPlayer].Distance:Remove()
-        self.Caches.BoxCache[targetPlayer].HealthText:Remove()
-        self.Caches.BoxCache[targetPlayer].HealthBarBackground:Remove()
-        self.Caches.BoxCache[targetPlayer].HealthBarOutline:Remove()
-        self.Caches.BoxCache[targetPlayer].HealthBar:Remove()
+        self.Caches.BoxCache[targetPlayer].HealthText:Destroy()  -- UI destroy
+        self.Caches.BoxCache[targetPlayer].HealthBarBackground:Destroy()
+        self.Caches.BoxCache[targetPlayer].HealthBarOutline:Destroy()
+        self.Caches.BoxCache[targetPlayer].HealthBar:Destroy()
         self.Caches.BoxCache[targetPlayer].FillFrame:Destroy()
         self.Caches.BoxCache[targetPlayer] = nil
     end
@@ -317,6 +321,25 @@ function espModule:ClearRing(targetPlayer)
     if self.Caches.RingCache[targetPlayer] then
         self.Caches.RingCache[targetPlayer].Holder:Destroy()
         self.Caches.RingCache[targetPlayer] = nil
+    end
+end
+
+function espModule:HideBox(targetPlayer)
+    if self.Caches.BoxCache[targetPlayer] then
+        local boxDrawings = self.Caches.BoxCache[targetPlayer]
+        boxDrawings.Box.Visible = false
+        boxDrawings.BoxOutline.Visible = false
+        boxDrawings.FillFrame.Visible = false
+        boxDrawings.Name.Visible = false
+        boxDrawings.Distance.Visible = false
+        boxDrawings.HealthText.Visible = false
+        boxDrawings.HealthBar.Visible = false
+        boxDrawings.HealthBarBackground.Visible = false
+        boxDrawings.HealthBarOutline.Visible = false
+        boxDrawings.BoxTop.Visible = false
+        boxDrawings.BoxBottom.Visible = false
+        boxDrawings.BoxLeft.Visible = false
+        boxDrawings.BoxRight.Visible = false
     end
 end
 
@@ -420,48 +443,44 @@ function espModule:UpdateBox()
                                         boxDrawings.Distance.Visible = false
                                     end
                                     
-                                    if self.State.HealthTextEnabled then
-                                        boxDrawings.HealthText.Position = Vector2.new(topLeft.X - 30, bottomLeft.Y - 15)
-                                        boxDrawings.HealthText.Text = tostring(math.floor(otherHumanoid.Health)) .. "/" .. tostring(otherHumanoid.MaxHealth)
-                                        boxDrawings.HealthText.Visible = true
-                                    else
-                                        boxDrawings.HealthText.Visible = false
-                                    end
-                                    
-                                    if self.State.HealthBarEnabled then
-                                        local healthBarHeight = height * healthPercentage
-                                        local healthBarPos = Vector2.new(topLeft.X - 6, bottomLeft.Y - healthBarHeight)
-                                        boxDrawings.HealthBar.Size = Vector2.new(3, healthBarHeight)
-                                        boxDrawings.HealthBar.Position = healthBarPos
-                                        boxDrawings.HealthBar.Color = Color3.new(1 - healthPercentage, healthPercentage, 0)
-                                        boxDrawings.HealthBar.Visible = true
+                                    if self.State.HealthTextEnabled or self.State.HealthBarEnabled then
+                                        local health_per = math.floor(otherHumanoid.Health / otherHumanoid.MaxHealth * 100)
+                                        local health_color = health_per >= 75 and Color3.fromRGB(0, 255, 0) or
+                                                             health_per >= 50 and Color3.fromRGB(255, 255, 0) or
+                                                             health_per >= 25 and Color3.fromRGB(255, 170, 0) or
+                                                             Color3.fromRGB(255, 0, 0)
                                         
-                                        boxDrawings.HealthBarBackground.Size = Vector2.new(3, height)
-                                        boxDrawings.HealthBarBackground.Position = Vector2.new(topLeft.X - 6, topLeft.Y)
-                                        boxDrawings.HealthBarBackground.Visible = true
+                                        if self.State.HealthTextEnabled then
+                                            boxDrawings.HealthText.Position = UDim2.new(0, topLeft.X - 20, 0, bottomLeft.Y - 15)
+                                            boxDrawings.HealthText.Text = tostring(health_per)
+                                            boxDrawings.HealthText.TextColor3 = health_color
+                                            boxDrawings.HealthText.Visible = true
+                                        else
+                                            boxDrawings.HealthText.Visible = false
+                                        end
                                         
-                                        boxDrawings.HealthBarOutline.Size = Vector2.new(5, height + 2)
-                                        boxDrawings.HealthBarOutline.Position = Vector2.new(topLeft.X - 7, topLeft.Y - 1)
-                                        boxDrawings.HealthBarOutline.Visible = true
-                                    else
-                                        boxDrawings.HealthBar.Visible = false
-                                        boxDrawings.HealthBarBackground.Visible = false
-                                        boxDrawings.HealthBarOutline.Visible = false
+                                        if self.State.HealthBarEnabled then
+                                            local health_bar_height = height * (health_per / 100)
+                                            boxDrawings.HealthBar.Size = UDim2.new(0, 4, 0, health_bar_height)
+                                            boxDrawings.HealthBar.Position = UDim2.new(0, topLeft.X - 6, 0, bottomLeft.Y - health_bar_height)
+                                            boxDrawings.HealthBar.BackgroundColor3 = health_color
+                                            boxDrawings.HealthBar.Visible = true
+                                            
+                                            boxDrawings.HealthBarBackground.Size = UDim2.new(0, 4, 0, height)
+                                            boxDrawings.HealthBarBackground.Position = UDim2.new(0, topLeft.X - 6, 0, topLeft.Y)
+                                            boxDrawings.HealthBarBackground.Visible = true
+                                            
+                                            boxDrawings.HealthBarOutline.Size = UDim2.new(0, 6, 0, height + 2)
+                                            boxDrawings.HealthBarOutline.Position = UDim2.new(0, topLeft.X - 7, 0, topLeft.Y - 1)
+                                            boxDrawings.HealthBarOutline.Visible = true
+                                        else
+                                            boxDrawings.HealthBar.Visible = false
+                                            boxDrawings.HealthBarBackground.Visible = false
+                                            boxDrawings.HealthBarOutline.Visible = false
+                                        end
                                     end
                                 else
-                                    boxDrawings.Box.Visible = false
-                                    boxDrawings.BoxOutline.Visible = false
-                                    boxDrawings.FillFrame.Visible = false
-                                    boxDrawings.Name.Visible = false
-                                    boxDrawings.Distance.Visible = false
-                                    boxDrawings.HealthText.Visible = false
-                                    boxDrawings.HealthBar.Visible = false
-                                    boxDrawings.HealthBarBackground.Visible = false
-                                    boxDrawings.HealthBarOutline.Visible = false
-                                    boxDrawings.BoxTop.Visible = false
-                                    boxDrawings.BoxBottom.Visible = false
-                                    boxDrawings.BoxLeft.Visible = false
-                                    boxDrawings.BoxRight.Visible = false
+                                    self:HideBox(otherPlayer)
                                 end
                             else
                                 self:ClearBox(otherPlayer)
@@ -475,9 +494,12 @@ function espModule:UpdateBox()
                 end
             end
         end
+    else
+        for player, _ in pairs(self.Caches.BoxCache) do
+            self:HideBox(player)
+        end
     end
 end
-
 function espModule:UpdateSkeleton()
     if not self.State.SkeletonEnabled then
         for player, _ in pairs(self.Caches.SkeletonCache) do
