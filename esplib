@@ -405,11 +405,11 @@ function espModule:HideBox(targetPlayer)
 end
 
 function espModule:UpdateBox()
-    -- Kiểm tra xem có tính năng nào đang bật không để tránh chạy vòng lặp vô ích
+    -- Kiểm tra xem có tính năng nào đang bật không
     if self.State.BoxEnabled or self.State.NameEnabled or self.State.DistanceEnabled or self.State.HealthTextEnabled or self.State.HealthBarEnabled or self.State.ArmorBarEnabled then
         
         if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local cameraPos = currentCamera.CFrame.Position
+            -- local cameraPos = currentCamera.CFrame.Position -- (Dòng này không dùng đến ở dưới, có thể bỏ)
             
             for _, otherPlayer in ipairs(playersService:GetPlayers()) do
                 if otherPlayer ~= localPlayer then
@@ -426,205 +426,215 @@ function espModule:UpdateBox()
                             -- Kiểm tra khoảng cách hiển thị
                             if distance <= self.Config.ESPDistance then
                                 
-                                -- Kiểm tra Team (nếu bật)
+                                -- LOGIC TEAM CHECK (Đã sửa lại để không dùng goto)
+                                -- Biến này để xác định xem có nên vẽ hay không
+                                local isTeammate = false
                                 if self.Config.TeamCheck and localPlayer.Team and otherPlayer.Team == localPlayer.Team then
+                                    isTeammate = true
+                                end
+
+                                if isTeammate then
+                                    -- Nếu là đồng đội thì xóa box và KHÔNG làm gì thêm
                                     self:ClearBox(otherPlayer)
-                                    goto continue_loop -- Dùng goto hoặc return tùy logic, ở đây dùng goto để skip qua player này
-                                end
-
-                                -- Tạo Box nếu chưa có trong Cache
-                                if not self.Caches.BoxCache[otherPlayer] then
-                                    self.Caches.BoxCache[otherPlayer] = self:CreateBox(otherPlayer)
-                                end
-                                
-                                local boxDrawings = self.Caches.BoxCache[otherPlayer]
-                                local rootScreenPos, rootOnScreen = currentCamera:WorldToViewportPoint(otherRoot.Position)
-                                
-                                if rootOnScreen then
-                                    -- Tính toán kích thước Box
-                                    local headPart = otherCharacter:FindFirstChild("Head")
-                                    local headTopPos = headPart and headPart.Position + Vector3.new(0, 1, 0) or otherRoot.Position + Vector3.new(0, 3, 0)
-                                    local feetPos = otherRoot.Position - Vector3.new(0, 3, 0)
+                                else
+                                    -- Nếu KHÔNG PHẢI đồng đội (hoặc tắt teamcheck) thì mới vẽ
+                                    -- Bắt đầu logic vẽ ESP tại đây
                                     
-                                    local headTopScreenPos = currentCamera:WorldToViewportPoint(headTopPos)
-                                    local feetScreenPos = currentCamera:WorldToViewportPoint(feetPos)
+                                    -- Tạo Box nếu chưa có trong Cache
+                                    if not self.Caches.BoxCache[otherPlayer] then
+                                        self.Caches.BoxCache[otherPlayer] = self:CreateBox(otherPlayer)
+                                    end
                                     
-                                    local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
-                                    local width = height * 0.66
+                                    local boxDrawings = self.Caches.BoxCache[otherPlayer]
+                                    local rootScreenPos, rootOnScreen = currentCamera:WorldToViewportPoint(otherRoot.Position)
                                     
-                                    local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
-                                    local topLeft = centerPos - Vector2.new(width / 2, height / 2)
-                                    local topRight = centerPos + Vector2.new(width / 2, -height / 2)
-                                    local bottomLeft = centerPos + Vector2.new(-width / 2, height / 2)
-                                    local bottomRight = centerPos + Vector2.new(width / 2, height / 2)
+                                    if rootOnScreen then
+                                        -- Tính toán kích thước Box
+                                        local headPart = otherCharacter:FindFirstChild("Head")
+                                        local headTopPos = headPart and headPart.Position + Vector3.new(0, 1, 0) or otherRoot.Position + Vector3.new(0, 3, 0)
+                                        local feetPos = otherRoot.Position - Vector3.new(0, 3, 0)
+                                        
+                                        local headTopScreenPos = currentCamera:WorldToViewportPoint(headTopPos)
+                                        local feetScreenPos = currentCamera:WorldToViewportPoint(feetPos)
+                                        
+                                        local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
+                                        local width = height * 0.66
+                                        
+                                        local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
+                                        local topLeft = centerPos - Vector2.new(width / 2, height / 2)
+                                        -- Các tọa độ khác không cần khai báo nếu không dùng trực tiếp, nhưng giữ logic cũ:
+                                        -- local topRight = centerPos + Vector2.new(width / 2, -height / 2)
+                                        -- local bottomLeft = centerPos + Vector2.new(-width / 2, height / 2)
+                                        -- local bottomRight = centerPos + Vector2.new(width / 2, height / 2)
 
-                                    -- Cập nhật Lerp Health
-                                    boxDrawings.TargetHealth = otherHumanoid.Health / otherHumanoid.MaxHealth * 100
-                                    boxDrawings.CurrentHealth = lerpNumber(boxDrawings.CurrentHealth, boxDrawings.TargetHealth, self.Config.HealthBarLerpSpeed)
-                                    local healthPercentage = boxDrawings.CurrentHealth / 100 -- Sử dụng giá trị đã lerp
+                                        -- Cập nhật Lerp Health
+                                        boxDrawings.TargetHealth = otherHumanoid.Health / otherHumanoid.MaxHealth * 100
+                                        boxDrawings.CurrentHealth = lerpNumber(boxDrawings.CurrentHealth, boxDrawings.TargetHealth, self.Config.HealthBarLerpSpeed)
+                                        -- local healthPercentage = boxDrawings.CurrentHealth / 100 -- (Dòng này logic cũ không dùng nên mình comment)
 
-                                    -- 1. Xử lý vẽ Box (Khung)
-                                    if self.State.BoxEnabled then
-                                        if self.Config.BoxGradientEnabled then
-                                            -- Logic Gradient (Ẩn các phần vẽ thông thường)
+                                        -- 1. Xử lý vẽ Box (Khung)
+                                        if self.State.BoxEnabled then
+                                            if self.Config.BoxGradientEnabled then
+                                                -- Logic Gradient
+                                                boxDrawings.Box.Visible = false
+                                                boxDrawings.BoxOutline.Visible = false
+                                                boxDrawings.BoxTop.Visible = false
+                                                boxDrawings.BoxBottom.Visible = false
+                                                boxDrawings.BoxLeft.Visible = false
+                                                boxDrawings.BoxRight.Visible = false
+                                                
+                                                boxDrawings.FillFrame.Position = UDim2.fromOffset(topLeft.X, topLeft.Y)
+                                                boxDrawings.FillFrame.Size = UDim2.fromOffset(width, height)
+                                                boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency
+                                                boxDrawings.FillFrame.Visible = true
+                                                
+                                                boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
+                                                boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
+                                                boxDrawings.Stroke.Transparency = 0
+                                            else
+                                                -- Logic Box thường
+                                                boxDrawings.FillFrame.Visible = false
+                                                
+                                                boxDrawings.Box.Size = Vector2.new(width, height)
+                                                boxDrawings.Box.Position = topLeft
+                                                boxDrawings.Box.Color = self.Config.BoxColor
+                                                boxDrawings.Box.Visible = true
+                                                
+                                                if self.Config.BoxOutlineEnabled then
+                                                    boxDrawings.BoxOutline.Size = Vector2.new(width, height)
+                                                    boxDrawings.BoxOutline.Position = topLeft
+                                                    boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
+                                                    boxDrawings.BoxOutline.Visible = true
+                                                    boxDrawings.BoxOutline.Transparency = 0
+                                                else
+                                                    boxDrawings.BoxOutline.Visible = false
+                                                end
+                                            end
+                                        else
+                                            -- Tắt hiển thị Box
                                             boxDrawings.Box.Visible = false
                                             boxDrawings.BoxOutline.Visible = false
+                                            boxDrawings.FillFrame.Visible = false
                                             boxDrawings.BoxTop.Visible = false
                                             boxDrawings.BoxBottom.Visible = false
                                             boxDrawings.BoxLeft.Visible = false
                                             boxDrawings.BoxRight.Visible = false
-                                            
-                                            boxDrawings.FillFrame.Position = UDim2.fromOffset(topLeft.X, topLeft.Y)
-                                            boxDrawings.FillFrame.Size = UDim2.fromOffset(width, height)
-                                            boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency
-                                            boxDrawings.FillFrame.Visible = true
-                                            
-                                            boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
-                                            boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
-                                            boxDrawings.Stroke.Transparency = 0
+                                        end
+                                        
+                                        -- 2. Xử lý Tên (Name)
+                                        if self.State.NameEnabled then
+                                            boxDrawings.Name.Position = Vector2.new(centerPos.X, headTopScreenPos.Y - 20)
+                                            boxDrawings.Name.Text = otherPlayer.Name
+                                            boxDrawings.Name.Visible = true
                                         else
-                                            -- Logic Box thường
-                                            boxDrawings.FillFrame.Visible = false
+                                            boxDrawings.Name.Visible = false
+                                        end
+                                        
+                                        -- 3. Xử lý Khoảng cách (Distance)
+                                        if self.State.DistanceEnabled then
+                                            boxDrawings.Distance.Position = Vector2.new(centerPos.X, feetScreenPos.Y + 5)
+                                            boxDrawings.Distance.Text = math.floor(distance) .. " studs"
+                                            boxDrawings.Distance.Visible = true
+                                        else
+                                            boxDrawings.Distance.Visible = false
+                                        end
+
+                                        -- Tọa độ chuẩn cho các thanh Bar bên trái
+                                        local barX = topLeft.X - 6
+                                        local barY = topLeft.Y
+                                        
+                                        -- 4. Xử lý Thanh Máu (Health Bar)
+                                        if self.State.HealthBarEnabled or self.State.HealthTextEnabled then
+                                            local health_per = math.floor(otherHumanoid.Health / otherHumanoid.MaxHealth * 100)
+                                            local health_color = health_per >= 75 and self.Config.HealthBarColor1 or
+                                                                 health_per >= 50 and self.Config.HealthBarColor2 or
+                                                                 self.Config.HealthBarColor3
                                             
-                                            boxDrawings.Box.Size = Vector2.new(width, height)
-                                            boxDrawings.Box.Position = topLeft
-                                            boxDrawings.Box.Color = self.Config.BoxColor
-                                            boxDrawings.Box.Visible = true
-                                            
-                                            if self.Config.BoxOutlineEnabled then
-                                                boxDrawings.BoxOutline.Size = Vector2.new(width, height)
-                                                boxDrawings.BoxOutline.Position = topLeft
-                                                boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
-                                                boxDrawings.BoxOutline.Visible = true
-                                                boxDrawings.BoxOutline.Transparency = 0
+                                            -- Text số máu
+                                            if self.State.HealthTextEnabled then
+                                                local textY = barY + height * (1 - health_per / 100)
+                                                if textY < barY then textY = barY end
+                                                if textY > barY + height - 10 then textY = barY + height - 10 end
+                                                
+                                                boxDrawings.HealthText.Position = UDim2.new(0, barX - 20, 0, textY)
+                                                boxDrawings.HealthText.Text = tostring(health_per)
+                                                boxDrawings.HealthText.TextColor3 = health_color
+                                                boxDrawings.HealthText.Visible = true
                                             else
-                                                boxDrawings.BoxOutline.Visible = false
+                                                boxDrawings.HealthText.Visible = false
+                                            end
+                                            
+                                            -- Thanh hiển thị máu
+                                            if self.State.HealthBarEnabled then
+                                                local health_bar_height = height * (health_per / 100)
+                                                
+                                                boxDrawings.HealthBar.Size = UDim2.new(0, 4, 0, health_bar_height)
+                                                boxDrawings.HealthBar.Position = UDim2.new(0, barX, 0, barY + height - health_bar_height)
+                                                boxDrawings.HealthBar.Visible = true
+                                                
+                                                boxDrawings.HealthBarBackground.Size = UDim2.new(0, 4, 0, height)
+                                                boxDrawings.HealthBarBackground.Position = UDim2.new(0, barX, 0, barY)
+                                                boxDrawings.HealthBarBackground.Visible = true
+                                                
+                                                boxDrawings.HealthBarOutline.Enabled = true
+                                            else
+                                                boxDrawings.HealthBar.Visible = false
+                                                boxDrawings.HealthBarBackground.Visible = false
+                                                boxDrawings.HealthBarOutline.Enabled = false
                                             end
                                         end
-                                    else
-                                        -- Tắt hiển thị Box
-                                        boxDrawings.Box.Visible = false
-                                        boxDrawings.BoxOutline.Visible = false
-                                        boxDrawings.FillFrame.Visible = false
-                                        boxDrawings.BoxTop.Visible = false
-                                        boxDrawings.BoxBottom.Visible = false
-                                        boxDrawings.BoxLeft.Visible = false
-                                        boxDrawings.BoxRight.Visible = false
-                                    end
-                                    
-                                    -- 2. Xử lý Tên (Name)
-                                    if self.State.NameEnabled then
-                                        boxDrawings.Name.Position = Vector2.new(centerPos.X, headTopScreenPos.Y - 20)
-                                        boxDrawings.Name.Text = otherPlayer.Name
-                                        boxDrawings.Name.Visible = true
-                                    else
-                                        boxDrawings.Name.Visible = false
-                                    end
-                                    
-                                    -- 3. Xử lý Khoảng cách (Distance)
-                                    if self.State.DistanceEnabled then
-                                        boxDrawings.Distance.Position = Vector2.new(centerPos.X, feetScreenPos.Y + 5)
-                                        boxDrawings.Distance.Text = math.floor(distance) .. " studs"
-                                        boxDrawings.Distance.Visible = true
-                                    else
-                                        boxDrawings.Distance.Visible = false
-                                    end
+                                        
+                                        -- 5. Xử lý Giáp (Armor Bar)
+                                        if self.State.ArmorBarEnabled or self.State.HealthTextEnabled then
+                                            local bodyEffects = otherCharacter:FindFirstChild("BodyEffects")
+                                            local armor = bodyEffects and bodyEffects:FindFirstChild("Armor") and bodyEffects.Armor.Value or 0
+                                            local armor_per = math.floor(armor / 130 * 100) -- Giả sử max armor là 130
+                                            
+                                            local armor_color = armor_per >= 75 and self.Config.ArmorBarColor1 or
+                                                                armor_per >= 50 and self.Config.ArmorBarColor2 or
+                                                                self.Config.ArmorBarColor3
+                                            
+                                            local armor_bar_x = barX - 8  -- Lùi tiếp sang trái so với healthbar
+                                            
+                                            -- Text số giáp (Dùng chung setting HealthTextEnabled như code cũ)
+                                            if self.State.HealthTextEnabled then
+                                                local textY = barY + height * (1 - armor_per / 100)
+                                                if textY < barY then textY = barY end
+                                                if textY > barY + height - 10 then textY = barY + height - 10 end
+                                                
+                                                boxDrawings.ArmorText.Position = UDim2.new(0, armor_bar_x - 20, 0, textY)
+                                                boxDrawings.ArmorText.Text = tostring(armor_per)
+                                                boxDrawings.ArmorText.TextColor3 = armor_color
+                                                boxDrawings.ArmorText.Visible = true
+                                            else
+                                                boxDrawings.ArmorText.Visible = false
+                                            end
+                                            
+                                            -- Thanh hiển thị giáp
+                                            if self.State.ArmorBarEnabled then
+                                                local armor_bar_height = height * (armor_per / 100)
+                                                
+                                                boxDrawings.ArmorBar.Size = UDim2.new(0, 4, 0, armor_bar_height)
+                                                boxDrawings.ArmorBar.Position = UDim2.new(0, armor_bar_x, 0, barY + height - armor_bar_height)
+                                                boxDrawings.ArmorBar.Visible = true
+                                                
+                                                boxDrawings.ArmorBarBackground.Size = UDim2.new(0, 4, 0, height)
+                                                boxDrawings.ArmorBarBackground.Position = UDim2.new(0, armor_bar_x, 0, barY)
+                                                boxDrawings.ArmorBarBackground.Visible = true
+                                                
+                                                boxDrawings.ArmorBarOutline.Enabled = true
+                                            else
+                                                boxDrawings.ArmorBar.Visible = false
+                                                boxDrawings.ArmorBarBackground.Visible = false
+                                                boxDrawings.ArmorBarOutline.Enabled = false
+                                            end
+                                        end
 
-                                    -- Tọa độ chuẩn cho các thanh Bar bên trái
-                                    local barX = topLeft.X - 6
-                                    local barY = topLeft.Y
-                                    
-                                    -- 4. Xử lý Thanh Máu (Health Bar)
-                                    if self.State.HealthBarEnabled or self.State.HealthTextEnabled then
-                                        local health_per = math.floor(otherHumanoid.Health / otherHumanoid.MaxHealth * 100)
-                                        local health_color = health_per >= 75 and self.Config.HealthBarColor1 or
-                                                             health_per >= 50 and self.Config.HealthBarColor2 or
-                                                             self.Config.HealthBarColor3
-                                        
-                                        -- Text số máu
-                                        if self.State.HealthTextEnabled then
-                                            local textY = barY + height * (1 - health_per / 100)
-                                            if textY < barY then textY = barY end
-                                            if textY > barY + height - 10 then textY = barY + height - 10 end
-                                            
-                                            boxDrawings.HealthText.Position = UDim2.new(0, barX - 20, 0, textY)
-                                            boxDrawings.HealthText.Text = tostring(health_per)
-                                            boxDrawings.HealthText.TextColor3 = health_color
-                                            boxDrawings.HealthText.Visible = true
-                                        else
-                                            boxDrawings.HealthText.Visible = false
-                                        end
-                                        
-                                        -- Thanh hiển thị máu
-                                        if self.State.HealthBarEnabled then
-                                            local health_bar_height = height * (health_per / 100)
-                                            
-                                            boxDrawings.HealthBar.Size = UDim2.new(0, 4, 0, health_bar_height)
-                                            boxDrawings.HealthBar.Position = UDim2.new(0, barX, 0, barY + height - health_bar_height)
-                                            boxDrawings.HealthBar.Visible = true
-                                            
-                                            boxDrawings.HealthBarBackground.Size = UDim2.new(0, 4, 0, height)
-                                            boxDrawings.HealthBarBackground.Position = UDim2.new(0, barX, 0, barY)
-                                            boxDrawings.HealthBarBackground.Visible = true
-                                            
-                                            boxDrawings.HealthBarOutline.Enabled = true
-                                        else
-                                            boxDrawings.HealthBar.Visible = false
-                                            boxDrawings.HealthBarBackground.Visible = false
-                                            boxDrawings.HealthBarOutline.Enabled = false
-                                        end
+                                    else
+                                        -- Player không nằm trong màn hình (OnScreen = false)
+                                        self:HideBox(otherPlayer)
                                     end
-                                    
-                                    -- 5. Xử lý Giáp (Armor Bar)
-                                    if self.State.ArmorBarEnabled or self.State.HealthTextEnabled then -- Note: Check logic HealthText ở đây có vẻ thừa, nhưng giữ nguyên theo code gốc
-                                        local bodyEffects = otherCharacter:FindFirstChild("BodyEffects")
-                                        local armor = bodyEffects and bodyEffects:FindFirstChild("Armor") and bodyEffects.Armor.Value or 0
-                                        local armor_per = math.floor(armor / 130 * 100) -- Giả sử max armor là 130
-                                        
-                                        local armor_color = armor_per >= 75 and self.Config.ArmorBarColor1 or
-                                                            armor_per >= 50 and self.Config.ArmorBarColor2 or
-                                                            self.Config.ArmorBarColor3
-                                        
-                                        local armor_bar_x = barX - 8  -- Lùi tiếp sang trái so với healthbar
-                                        
-                                        -- Text số giáp
-                                        if self.State.HealthTextEnabled then -- Code gốc dùng chung state HealthTextEnabled cho giáp?
-                                            local textY = barY + height * (1 - armor_per / 100)
-                                            if textY < barY then textY = barY end
-                                            if textY > barY + height - 10 then textY = barY + height - 10 end
-                                            
-                                            boxDrawings.ArmorText.Position = UDim2.new(0, armor_bar_x - 20, 0, textY)
-                                            boxDrawings.ArmorText.Text = tostring(armor_per)
-                                            boxDrawings.ArmorText.TextColor3 = armor_color
-                                            boxDrawings.ArmorText.Visible = true
-                                        else
-                                            boxDrawings.ArmorText.Visible = false
-                                        end
-                                        
-                                        -- Thanh hiển thị giáp
-                                        if self.State.ArmorBarEnabled then
-                                            local armor_bar_height = height * (armor_per / 100)
-                                            
-                                            boxDrawings.ArmorBar.Size = UDim2.new(0, 4, 0, armor_bar_height)
-                                            boxDrawings.ArmorBar.Position = UDim2.new(0, armor_bar_x, 0, barY + height - armor_bar_height)
-                                            boxDrawings.ArmorBar.Visible = true
-                                            
-                                            boxDrawings.ArmorBarBackground.Size = UDim2.new(0, 4, 0, height)
-                                            boxDrawings.ArmorBarBackground.Position = UDim2.new(0, armor_bar_x, 0, barY)
-                                            boxDrawings.ArmorBarBackground.Visible = true
-                                            
-                                            boxDrawings.ArmorBarOutline.Enabled = true
-                                        else
-                                            boxDrawings.ArmorBar.Visible = false
-                                            boxDrawings.ArmorBarBackground.Visible = false
-                                            boxDrawings.ArmorBarOutline.Enabled = false
-                                        end
-                                    end
-
-                                else
-                                    -- Player không nằm trong màn hình (OnScreen = false)
-                                    self:HideBox(otherPlayer)
-                                end
+                                end -- Kết thúc khối if/else của Team Check
                             else
                                 -- Khoảng cách quá xa
                                 self:ClearBox(otherPlayer)
@@ -638,7 +648,6 @@ function espModule:UpdateBox()
                         self:ClearBox(otherPlayer)
                     end
                 end
-                ::continue_loop:: -- Label cho goto nếu dùng
             end
         end
     else
