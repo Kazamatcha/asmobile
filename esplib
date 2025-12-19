@@ -405,7 +405,7 @@ function espModule:HideBox(targetPlayer)
 end
 
 function espModule:UpdateBox()
-    if self.State.BoxEnabled or self.State.NameEnabled or self.State.DistanceEnabled or self.State.HealthTextEnabled or self.State.HealthBarEnabled or self.State.ArmorBarEnabled then
+    if self.State.BoxEnabled or self.State.NameEnabled or self.State
         if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local cameraPos = currentCamera.CFrame.Position
             
