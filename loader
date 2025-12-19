@@ -3940,7 +3940,7 @@ ChinaHatGroup:AddSlider('ChinaHatScaleZ', {
         end
     end
 })
-local MatchaEsp = loadstring(game:HttpGet('https://raw.githubusercontent.com/alebinh60/asmobile/refs/heads/main/esplib'))()  -- Thay URL bằng link mới nếu bạn đã upload lib cập nhật
+local MatchaEsp = loadstring(game:HttpGet('https://raw.githubusercontent.com/alebinh60/asmobile/refs/heads/main/esplib'))()
 local esp = MatchaEsp
 local ESPGroup = Tabs.Visual:AddLeftGroupbox('ESP')
 
@@ -3949,11 +3949,7 @@ ESPGroup:AddToggle('BoxESPToggle', {
     Text = 'Box ESP',
     Default = false,
     Callback = function(Value)
-        if Value then
-            esp:InitiateBox(Color3.new(0.403922, 0.349020, 0.701961))
-        else
-            esp.State.BoxEnabled = false
-        end
+        esp.State.BoxEnabled = Value
     end,
 }):AddColorPicker('BoxColorPicker', {
     Default = Color3.new(0.403922, 0.349020, 0.701961),
@@ -3966,7 +3962,7 @@ ESPGroup:AddToggle('BoxESPToggle', {
     end,
 })
 
--- Box Gradient Toggle (sử dụng fill gradient với rotation và UIGradient)
+-- Box Gradient Toggle
 ESPGroup:AddToggle('BoxGradientToggle', {
     Text = 'Box Gradient',
     Default = false,
@@ -4039,7 +4035,7 @@ ESPGroup:AddToggle('BoxOutlineToggle', {
     end,
 })
 
--- Ring ESP (mới thêm)
+-- Ring ESP
 ESPGroup:AddToggle('RingESPToggle', {
     Text = 'Ring ESP',
     Default = false,
@@ -4108,7 +4104,16 @@ ESPGroup:AddToggle('HealthBarESPToggle', {
     Text = 'Health Bar',
     Default = false,
     Callback = function(Value)
-        esp:InitiateHealthBar(Value)
+        esp.State.HealthBarEnabled = Value
+    end,
+})
+
+-- Armor Bar ESP (mới thêm)
+ESPGroup:AddToggle('ArmorBarESPToggle', {
+    Text = 'Armor Bar',
+    Default = false,
+    Callback = function(Value)
+        esp.State.ArmorBarEnabled = Value
     end,
 })
 
@@ -4117,7 +4122,7 @@ ESPGroup:AddToggle('HealthTextESPToggle', {
     Text = 'Health Text',
     Default = false,
     Callback = function(Value)
-        esp:InitiateHealthText(Value)
+        esp.State.HealthTextEnabled = Value
     end,
 })
 
