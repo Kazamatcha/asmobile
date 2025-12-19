@@ -92,10 +92,11 @@ function espModule:CreateBox(_)
         BoxRight = Drawing.new("Line"),
         Name = Drawing.new("Text"),
         Distance = Drawing.new("Text"),
-        HealthText = Instance.new("TextLabel"),  -- Thay bằng TextLabel UI cho đẹp hơn
-        HealthBarBackground = Instance.new("Frame"),  -- Frame cho bg
-        HealthBarOutline = Instance.new("Frame"),  -- Frame cho outline nếu cần
-        HealthBar = Instance.new("Frame"),  -- Frame cho bar
+        HealthText = Instance.new("TextLabel"),
+        HealthBarBackground = Instance.new("Frame"),
+        HealthBarOutline = Instance.new("UIStroke"),
+        HealthBar = Instance.new("Frame"),
+        HealthBarGradient = Instance.new("UIGradient"),
         CurrentHealth = 100,
         TargetHealth = 100,
         FillFrame = Instance.new("Frame"),
@@ -103,10 +104,8 @@ function espModule:CreateBox(_)
         Stroke = Instance.new("UIStroke")
     }
     
-    -- Parent UI elements vào EspGui
     boxDrawings.HealthText.Parent = self.EspGui
     boxDrawings.HealthBarBackground.Parent = self.EspGui
-    boxDrawings.HealthBarOutline.Parent = self.EspGui
     boxDrawings.HealthBar.Parent = self.EspGui
     boxDrawings.FillFrame.Parent = self.EspGui
     
@@ -125,7 +124,7 @@ function espModule:CreateBox(_)
     boxDrawings.Stroke.Transparency = 0
     boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
     
-    -- Main box (Drawing)
+    -- Main box
     boxDrawings.Box.Thickness = 1
     boxDrawings.Box.Color = self.Config.BoxColor
     boxDrawings.Box.Filled = false
@@ -136,9 +135,9 @@ function espModule:CreateBox(_)
     boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
     boxDrawings.BoxOutline.Filled = false
     boxDrawings.BoxOutline.Visible = false
-    boxDrawings.BoxOutline.Transparency = 0  -- Sửa thành 0
+    boxDrawings.BoxOutline.Transparency = 0
     
-    -- Gradient lines (fallback)
+    -- Gradient lines
     boxDrawings.BoxTop.Thickness = 1
     boxDrawings.BoxTop.Visible = false
     boxDrawings.BoxBottom.Thickness = 1
@@ -148,7 +147,7 @@ function espModule:CreateBox(_)
     boxDrawings.BoxRight.Thickness = 1
     boxDrawings.BoxRight.Visible = false
     
-    -- Text elements (Drawing cho name/distance, UI cho health text)
+    -- Text elements
     boxDrawings.Name.Size = 13
     boxDrawings.Name.Color = Color3.new(1, 1, 1)
     boxDrawings.Name.Outline = true
@@ -163,31 +162,39 @@ function espModule:CreateBox(_)
     boxDrawings.Distance.Visible = false
     boxDrawings.Distance.Font = 2
     
-    -- Health text (UI TextLabel, font default)
-    boxDrawings.HealthText.Size = UDim2.new(0, 100, 0, 20)
+    -- Health text (UI)
     boxDrawings.HealthText.BackgroundTransparency = 1
-    boxDrawings.HealthText.TextColor3 = Color3.new(1, 1, 1)
     boxDrawings.HealthText.TextSize = 12
-    boxDrawings.HealthText.Font = Enum.Font.Code  -- Hoặc font tùy chỉnh nếu có
-    boxDrawings.HealthText.Visible = false
+    boxDrawings.HealthText.Font = Enum.Font.Code
     boxDrawings.HealthText.TextXAlignment = Enum.TextXAlignment.Left
+    boxDrawings.HealthText.TextYAlignment = Enum.TextYAlignment.Center
+    boxDrawings.HealthText.Visible = false
+    boxDrawings.HealthText.TextStrokeTransparency = 0
+    boxDrawings.HealthText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     
-    -- Health bar background (UI Frame, như script mới)
+    -- Health bar background
     boxDrawings.HealthBarBackground.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
     boxDrawings.HealthBarBackground.BackgroundTransparency = 0.45
     boxDrawings.HealthBarBackground.BorderSizePixel = 0
     boxDrawings.HealthBarBackground.Visible = false
     
-    -- Health bar outline (UI Frame hoặc UIStroke, nhưng dùng Frame cho đơn giản)
-    boxDrawings.HealthBarOutline.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    boxDrawings.HealthBarOutline.BackgroundTransparency = 0.8
-    boxDrawings.HealthBarOutline.BorderSizePixel = 0
-    boxDrawings.HealthBarOutline.Visible = false
+    boxDrawings.HealthBarOutline.Parent = boxDrawings.HealthBarBackground
+    boxDrawings.HealthBarOutline.Color = Color3.fromRGB(0, 0, 0)
+    boxDrawings.HealthBarOutline.Transparency = 0.8
+    boxDrawings.HealthBarOutline.Thickness = 1
+    boxDrawings.HealthBarOutline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     
-    -- Health bar (UI Frame, color lerp)
+    -- Health bar
     boxDrawings.HealthBar.BackgroundTransparency = 0
     boxDrawings.HealthBar.BorderSizePixel = 0
     boxDrawings.HealthBar.Visible = false
+    
+    boxDrawings.HealthBarGradient.Parent = boxDrawings.HealthBar
+    boxDrawings.HealthBarGradient.Rotation = 90
+    boxDrawings.HealthBarGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 0)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+    })
     
     return boxDrawings
 end
@@ -443,15 +450,24 @@ function espModule:UpdateBox()
                                         boxDrawings.Distance.Visible = false
                                     end
                                     
-                                    if self.State.HealthTextEnabled or self.State.HealthBarEnabled then
+if self.State.HealthTextEnabled or self.State.HealthBarEnabled then
                                         local health_per = math.floor(otherHumanoid.Health / otherHumanoid.MaxHealth * 100)
                                         local health_color = health_per >= 75 and Color3.fromRGB(0, 255, 0) or
                                                              health_per >= 50 and Color3.fromRGB(255, 255, 0) or
                                                              health_per >= 25 and Color3.fromRGB(255, 170, 0) or
                                                              Color3.fromRGB(255, 0, 0)
                                         
+                                        local barX = topLeft.X - 6
+                                        local barY = topLeft.Y
+                                        local barHeight = height * (health_per / 100)
+                                        local textY = barY + height * (1 - health_per / 100)
+                                        
+                                        -- Clamp textY
+                                        if textY < barY then textY = barY end
+                                        if textY > barY + height - 10 then textY = barY + height - 10 end
+                                        
                                         if self.State.HealthTextEnabled then
-                                            boxDrawings.HealthText.Position = UDim2.new(0, topLeft.X - 20, 0, bottomLeft.Y - 15)
+                                            boxDrawings.HealthText.Position = UDim2.new(0, barX - 20, 0, textY)
                                             boxDrawings.HealthText.Text = tostring(health_per)
                                             boxDrawings.HealthText.TextColor3 = health_color
                                             boxDrawings.HealthText.Visible = true
@@ -460,23 +476,19 @@ function espModule:UpdateBox()
                                         end
                                         
                                         if self.State.HealthBarEnabled then
-                                            local health_bar_height = height * (health_per / 100)
-                                            boxDrawings.HealthBar.Size = UDim2.new(0, 4, 0, health_bar_height)
-                                            boxDrawings.HealthBar.Position = UDim2.new(0, topLeft.X - 6, 0, bottomLeft.Y - health_bar_height)
-                                            boxDrawings.HealthBar.BackgroundColor3 = health_color
+                                            boxDrawings.HealthBar.Size = UDim2.new(0, 4, 0, barHeight)
+                                            boxDrawings.HealthBar.Position = UDim2.new(0, barX, 0, barY + height - barHeight)
                                             boxDrawings.HealthBar.Visible = true
                                             
                                             boxDrawings.HealthBarBackground.Size = UDim2.new(0, 4, 0, height)
-                                            boxDrawings.HealthBarBackground.Position = UDim2.new(0, topLeft.X - 6, 0, topLeft.Y)
+                                            boxDrawings.HealthBarBackground.Position = UDim2.new(0, barX, 0, barY)
                                             boxDrawings.HealthBarBackground.Visible = true
                                             
-                                            boxDrawings.HealthBarOutline.Size = UDim2.new(0, 6, 0, height + 2)
-                                            boxDrawings.HealthBarOutline.Position = UDim2.new(0, topLeft.X - 7, 0, topLeft.Y - 1)
-                                            boxDrawings.HealthBarOutline.Visible = true
+                                            boxDrawings.HealthBarOutline.Enabled = true
                                         else
                                             boxDrawings.HealthBar.Visible = false
                                             boxDrawings.HealthBarBackground.Visible = false
-                                            boxDrawings.HealthBarOutline.Visible = false
+                                            boxDrawings.HealthBarOutline.Enabled = false
                                         end
                                     end
                                 else
