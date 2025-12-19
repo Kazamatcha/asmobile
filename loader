@@ -2891,27 +2891,7 @@ KillAuraGroup:AddToggle('KillAuraVisualize', {
         ka_tracer.Color = Value
     end
 })
-KillAuraGroup:AddDropdown('KAWhitelist', {
-    SpecialType = 'Player',
-    ExcludeLocalPlayer = true,
-    Multi = true,
-    Text = 'KillAura Whitelist',
-    Searchable = true,
-    Callback = function(Value)
-        local list = {}
-        for _, v in pairs(Value) do
-            local plr = game.Players:FindFirstChild(v) or game.Players:FindFirstChild(tostring(v))
-            if plr then table.insert(list, plr) end
-        end
-        matchacc.KillAura.Whitelist = list
 
-        if #list == 0 then
-            Library:Notify("KillAura whitelist cleared")
-        else
-            Library:Notify("KillAura whitelist: " .. #list .. " player(s)")
-        end
-    end
-})
 KillAuraGroup:AddToggle('StompAura', {
     Text = 'Stomp Aura',
     Default = false,
