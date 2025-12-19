@@ -434,7 +434,7 @@ end
 warn("[+] Matcha.cc : anticheat bypassed.")
 end)()
 
-local repo = 'https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/'
+local repo = 'https://raw.githubusercontent.com/alebinh60/asmobile/refs/heads/main/'
 
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
@@ -464,7 +464,7 @@ local Window = Library:CreateWindow({
 })
 local plr = game.Players.LocalPlayer
 local mps = game:GetService("MarketplaceService")
-loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/anhyeuvy"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/alebinh60/asmobile/refs/heads/main/anhyeuvy"))()
 local ownerList = {
     ["anhchangm5"] = true,
     ["Dao_Beo"] = true,
@@ -3940,11 +3940,11 @@ ChinaHatGroup:AddSlider('ChinaHatScaleZ', {
         end
     end
 })
-local MatchaEsp = loadstring(game:HttpGet('https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/esplib'))()
-local esp = MatchaEsp.new()
-
+local MatchaEsp = loadstring(game:HttpGet('https://raw.githubusercontent.com/alebinh60/asmobile/refs/heads/main/esplib'))()  -- Thay URL bằng link mới nếu bạn đã upload lib cập nhật
+local esp = MatchaEsp
 local ESPGroup = Tabs.Visual:AddLeftGroupbox('ESP')
 
+-- Box ESP
 ESPGroup:AddToggle('BoxESPToggle', {
     Text = 'Box ESP',
     Default = false,
@@ -3966,7 +3966,7 @@ ESPGroup:AddToggle('BoxESPToggle', {
     end,
 })
 
--- Box Gradient Toggle
+-- Box Gradient Toggle (sử dụng fill gradient với rotation và UIGradient)
 ESPGroup:AddToggle('BoxGradientToggle', {
     Text = 'Box Gradient',
     Default = false,
@@ -3978,12 +3978,41 @@ ESPGroup:AddToggle('BoxGradientToggle', {
     Title = 'Gradient Color 1',
     Callback = function(Value)
         esp.Config.BoxGradientColor1 = Value
+        for _, espObj in pairs(esp.Caches.BoxCache) do
+            espObj.Gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, esp.Config.BoxGradientColor1),
+                ColorSequenceKeypoint.new(0.5, esp.Config.BoxGradientColor2),
+                ColorSequenceKeypoint.new(1, esp.Config.BoxGradientColor1)
+            })
+        end
     end,
 }):AddColorPicker('BoxGradientColor2', {
     Default = Color3.new(0.8, 0.4, 1),
     Title = 'Gradient Color 2',
     Callback = function(Value)
         esp.Config.BoxGradientColor2 = Value
+        for _, espObj in pairs(esp.Caches.BoxCache) do
+            espObj.Gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, esp.Config.BoxGradientColor1),
+                ColorSequenceKeypoint.new(0.5, esp.Config.BoxGradientColor2),
+                ColorSequenceKeypoint.new(1, esp.Config.BoxGradientColor1)
+            })
+        end
+    end,
+})
+
+ESPGroup:AddSlider('BoxFillTransparencySlider', {
+    Text = 'Box Fill Transparency',
+    Default = 0.5,
+    Min = 0,
+    Max = 1,
+    Rounding = 2,
+    Compact = true,
+    Callback = function(Value)
+        esp.Config.BoxFillTransparency = Value
+        for _, espObj in pairs(esp.Caches.BoxCache) do
+            espObj.FillFrame.BackgroundTransparency = Value
+        end
     end,
 })
 
@@ -3993,6 +4022,10 @@ ESPGroup:AddToggle('BoxOutlineToggle', {
     Default = true,
     Callback = function(Value)
         esp.Config.BoxOutlineEnabled = Value
+        for _, espObj in pairs(esp.Caches.BoxCache) do
+            espObj.Stroke.Enabled = Value
+            espObj.BoxOutline.Visible = Value and not esp.Config.BoxGradientEnabled
+        end
     end,
 }):AddColorPicker('BoxOutlineColor', {
     Default = Color3.new(0, 0, 0),
@@ -4000,7 +4033,30 @@ ESPGroup:AddToggle('BoxOutlineToggle', {
     Callback = function(Value)
         esp.Config.BoxOutlineColor = Value
         for _, espObj in pairs(esp.Caches.BoxCache) do
+            espObj.Stroke.Color = Value
             espObj.BoxOutline.Color = Value
+        end
+    end,
+})
+
+-- Ring ESP (mới thêm)
+ESPGroup:AddToggle('RingESPToggle', {
+    Text = 'Ring ESP',
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            esp:InitiateRing(Color3.new(1, 1, 1))
+        else
+            esp.State.RingEnabled = false
+        end
+    end,
+}):AddColorPicker('RingColorPicker', {
+    Default = Color3.new(1, 1, 1),
+    Title = 'Ring Color',
+    Callback = function(Value)
+        esp.Config.RingColor = Value
+        for _, data in pairs(esp.Caches.RingCache) do
+            data.Ring.Color3 = Value
         end
     end,
 })
@@ -4099,7 +4155,6 @@ ESPGroup:AddToggle('TracerESPToggle', {
         end
     end,
 })
-
 ESPGroup:AddDropdown('TracerOriginDropdown', {
     Text = 'Tracer Origin',
     Default = 'Bottom Screen',
@@ -4110,7 +4165,7 @@ ESPGroup:AddDropdown('TracerOriginDropdown', {
     end,
 })
 
--- Chams
+-- Chams ESP
 ESPGroup:AddToggle('ChamsToggle', {
     Text = 'Chams',
     Default = false,
@@ -4140,7 +4195,6 @@ ESPGroup:AddToggle('ChamsToggle', {
         end
     end,
 })
-
 ESPGroup:AddSlider('ChamFillTransparency', {
     Text = 'Chams Transparency',
     Default = 0.5,
@@ -11669,7 +11723,7 @@ AnimPackBox:AddButton({
             return
         end
         hasLoadedPacks = true
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/quiwti08/beubebong/refs/heads/main/animationspacks"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/alebinh60/asmobile/refs/heads/main/animationspacks"))()
     end
 })
 end)()
