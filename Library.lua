@@ -214,7 +214,7 @@ if RunService:IsStudio() then
         Library.MinSize = Vector2.new(480, 240)
     else
         Library.IsMobile = false
-        Library.MinSize = Vector2.new(400, 360)
+        Library.MinSize = Vector2.new(450, 360)
     end
 else
     pcall(function()
@@ -282,7 +282,7 @@ local Templates = {
         Resizable = true,
         SearchbarSize = UDim2.fromScale(1, 1),
         GlobalSearch = true,
-        CornerRadius = 6,
+        CornerRadius = 8,
         NotifySide = "Right",
         ShowCustomCursor = true,
         Font = Enum.Font.Code,
