@@ -4088,14 +4088,13 @@ ESPGroup:AddToggle('HealthBarESPToggle', {
     end,
 })
 
--- Armor Bar ESP (mới thêm)
-ESPGroup:AddToggle('ArmorBarESPToggle', {
+--[[ESPGroup:AddToggle('ArmorBarESPToggle', {
     Text = 'Armor Bar',
     Default = false,
     Callback = function(Value)
         esp.State.ArmorBarEnabled = Value
     end,
-})
+})]]
 
 -- Health Text ESP
 ESPGroup:AddToggle('HealthTextESPToggle', {
@@ -12693,7 +12692,7 @@ WorldGroup:AddToggle('NebulaTheme', {
         end
     end
 })
-local SelectedSkybox = "Snow"
+local SelectedSkybox = "HD"
 local LightingSettings = {
     DefaultSkyboxBk = lighting.Sky.SkyboxBk,
     DefaultSkyboxDn = lighting.Sky.SkyboxDn,
@@ -12722,6 +12721,14 @@ local SkyboxAssets = {
         Lf = "rbxassetid://15502507918",
         Rt = "rbxassetid://15502509398",
         Up = "rbxassetid://15502511911"
+    },
+    ["HD"] = {
+        Bk = "http://www.roblox.com/asset/?id=16553658937",
+        Dn = "http://www.roblox.com/asset/?id=16553660713",
+        Ft = "http://www.roblox.com/asset/?id=16553662144",
+        Lf = "http://www.roblox.com/asset/?id=16553664042",
+        Rt = "http://www.roblox.com/asset/?id=16553665766",
+        Up = "http://www.roblox.com/asset/?id=16553667750"
     },
     ["Snow"] = {
         Bk = "http://www.roblox.com/asset/?id=155657655",
@@ -12968,7 +12975,7 @@ WorldGroup:AddToggle('CustomSkyboxEnabled', {
 })
 
 WorldGroup:AddDropdown('SkyboxSelected', {
-    Values = {"Black Storm", "Snow", "Blue Space", "Realistic", "Stormy", "Pink", "Sunset", "Arctic", "Space", "Roblox Default", "Red Night", "Deep Space 1", "Pink Skies", "Purple Sunset", "Blue Night", "Blossom Daylight", "Blue Nebula", "Blue Planet", "Deep Space 2", "Summer", "Galaxy", "Stylized", "Minecraft", "Sunset 2", "Cloudy Rain", "Black Cloudy Rain"},
+    Values = {"Black Storm", "HD", "Snow", "Blue Space", "Realistic", "Stormy", "Pink", "Sunset", "Arctic", "Space", "Roblox Default", "Red Night", "Deep Space 1", "Pink Skies", "Purple Sunset", "Blue Night", "Blossom Daylight", "Blue Nebula", "Blue Planet", "Deep Space 2", "Summer", "Galaxy", "Stylized", "Minecraft", "Sunset 2", "Cloudy Rain", "Black Cloudy Rain"},
     Default = "Snow",
     Multi = false,
     Text = 'Skybox',
