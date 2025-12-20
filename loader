@@ -532,6 +532,8 @@ local Tabs = {
 }
 local previousTargetHealth = {}
 local TargetAimActive = false
+local BuyingAmmo = false
+local BuyingAmmoActive = false
 local BuyingActive = false
 local AutoKillActive = false
 local AutoHealActive = false
@@ -6720,7 +6722,7 @@ RunService.Heartbeat:Connect(function(dt)
             end
         end
 
-        local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoLoadout.Enabled or BuyingSingle
+        local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoLoadout.Enabled or BuyingSingle or BuyingAmmoActive
         local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
         if not TargetPlayer or not TargetPlayer.Character or not TargetPlayer.Character:FindFirstChild("Head") or not TargetPlayer.Character:FindFirstChild("HumanoidRootPart") then
             return
@@ -6842,12 +6844,13 @@ RunService.Heartbeat:Connect(function(dt)
     BuyingSingleActive = false
     AutoHealActive = false
     AutoKillActive = false
+    BuyingAmmoActive = false 
     local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
     local Tool = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Tool")
     local SavedPosition = hrp and hrp.CFrame
 
-	local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoLoadout.Enabled or BuyingSingle 
-    abletodesync = not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or AutoHealActive)
+	local useDesync = matchacc.TargetAim.Strafe or matchacc.TargetAim.AutoStomp or matchacc.KillAura.StompAura or matchacc.TargetAim.AutoKill or headshots.AutoLoadout.Enabled or BuyingSingle or BuyingAmmo
+    abletodesync = not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or AutoHealActive or BuyingAmmoActive)
 	if matchacc.TargetAim.Enabled and matchacc.TargetAim.Target ~= "None" then
 	    local TargetPlayer = players:FindFirstChild(matchacc.TargetAim.Target)
 	    if TargetPlayer and TargetPlayer.Character and TargetPlayer.Character:FindFirstChild("Humanoid") then
@@ -7085,12 +7088,8 @@ local function GetInventoryAmmo(gunName)
     local inv = localPlayer:FindFirstChild("DataFolder")
         and localPlayer.DataFolder:FindFirstChild("Inventory")
     if not inv then return 0 end
-
     local ammo = inv:FindFirstChild(gunName)
-    if ammo then
-        return tonumber(ammo.Value) or 0
-    end
-    return 0
+    return ammo and tonumber(ammo.Value) or 0
 end
 RunService.Heartbeat:Connect(function()
 
@@ -7127,27 +7126,23 @@ RunService.Heartbeat:Connect(function()
         BuyingSingleActive = true
     end
 
-    ------------------------------------------------------------
-    -- AUTO LOADOUT LOGIC (DÙNG INVENTORY AMMO)
-    ------------------------------------------------------------
-    if headshots.AutoLoadout.Enabled and headshots.AutoLoadout.Gun then
-        local gunName = headshots.AutoLoadout.Gun
-        local hasGun =
-            localPlayer.Character:FindFirstChild(gunName)
-            or localPlayer.Backpack:FindFirstChild(gunName)
+	if headshots.AutoLoadout.Enabled and headshots.AutoLoadout.Gun then
+	    local gunName = headshots.AutoLoadout.Gun
+	    local hasGun = localPlayer.Character:FindFirstChild(gunName) or localPlayer.Backpack:FindFirstChild(gunName)
+	    local invAmmo = GetInventoryAmmo(gunName)
+	
+	    if not hasGun then
+	        AutoLoadoutActive = true
+	        BuyingAmmo = false
+	    elseif invAmmo == 0 then
+	        BuyingAmmo = true
+	        AutoLoadoutActive = false
+	    else
+	        AutoLoadoutActive = false
+	        BuyingAmmo = false
+	    end
+	end
 
-        local invAmmo = GetInventoryAmmo(gunName)
-
-        if not hasGun then
-            AutoLoadoutActive = true
-
-        elseif invAmmo == 0 then
-            AutoLoadoutActive = false
-
-        else
-            AutoLoadoutActive = false
-        end
-    end
 
     ------------------------------------------------------------
     -- DESYNC CHECK
@@ -7159,6 +7154,7 @@ RunService.Heartbeat:Connect(function()
         or AutoLoadoutActive
         or BuyingSingleActive
         or AutoHealActive
+        or BuyingAmmoActive
     )
 
     ------------------------------------------------------------
@@ -7198,9 +7194,37 @@ RunService.Heartbeat:Connect(function()
             BuyingSingle = false
         end
 
-        --------------------------------------------------------
-        -- AUTO LOADOUT BUY GUN
-        --------------------------------------------------------
+		if BuyingAmmo then
+		    BuyingAmmoActive = true
+		
+		    local gunName = headshots.AutoLoadout.Gun  -- ***chú ý: .Gun (KHÔNG phải GGun)***
+		    if gunName and type(gunName)=="string" then
+		        local AmmoName = "[" .. gunName:sub(2, -2) .. " Ammo]"
+		        local ammoData = ShopTable[AmmoName]
+		        if ammoData then
+		            local shop = workspace.Ignored.Shop:FindFirstChild(ammoData.ShopName)
+		            if shop and shop:FindFirstChild("Head") then
+		                local tool = char:FindFirstChildOfClass("Tool")
+		                if tool then tool.Parent = localPlayer.Backpack end
+		
+		                local saved = hrp.CFrame
+		                hrp.CFrame = shop.Head.CFrame
+		                RunService:BindToRenderStep("RestoreAmmo", 199, function()
+		                    hrp.CFrame = saved
+		                    RunService:UnbindFromRenderStep("RestoreAmmo")
+		                end)
+		
+		                pcall(function()
+		                    fireclickdetector(shop:FindFirstChildOfClass("ClickDetector"))
+		                end)
+		            end
+		        end
+		    end
+		
+		    -- reset flags đúng thứ tự
+		    BuyingAmmo = false
+		    BuyingAmmoActive = false
+		end
         if AutoLoadoutActive
             and headshots.AutoLoadout.Gun
             and ShopTable[headshots.AutoLoadout.Gun]
@@ -7249,7 +7273,7 @@ local function update_status(text)
 end
 
 RunService.Heartbeat:Connect(function(dt)
-    if matchacc.TargetAim.AutoKill and not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or AutoHealActive) then
+    if matchacc.TargetAim.AutoKill and not (TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or AutoHealActive or BuyingAmmoActive) then
         local targetName = matchacc.TargetAim.Target
         if getgenv().lastTarget ~= targetName then
             -- Force restore vị trí khi target thay đổi để tránh stuck từ target cũ
@@ -7464,7 +7488,7 @@ coroutine.wrap(function()
     while true do
         task.wait()  -- Thay vì task.wait(), dùng trong loop để không block
         pcall(function()
-            if getgenv().AutoHealEnabled and not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive) then
+            if getgenv().AutoHealEnabled and not (AutoKillActive or TargetAimActive or AutoArmorActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive) then
                 local character = plr.Character
 				local hrp = character.HumanoidRootPart
 				
@@ -7511,7 +7535,7 @@ coroutine.wrap(function()
     while true do
         task.wait()
         pcall(function()
-            if getgenv().AutoArmorEnabled and not (AutoKillActive or TargetAimActive or AutoHealActive or AutoLoadoutActive or BuyingSingleActive) then
+            if getgenv().AutoArmorEnabled and not (AutoKillActive or TargetAimActive or AutoHealActive or AutoLoadoutActive or BuyingSingleActive or BuyingAmmoActive) then
                 local character = plr.Character
                 local hrp = character.HumanoidRootPart
                 local bodyEffects = character:FindFirstChild("BodyEffects")  -- Giả sử vu178 = BodyEffects
