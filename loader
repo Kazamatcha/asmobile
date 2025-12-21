@@ -453,7 +453,7 @@ if ChatEnabled and chatWindow then
 end
 local Camera = workspace.CurrentCamera
 local Window = Library:CreateWindow({
-	Title = "",
+	Title = "matcha",
 	Footer = "matcha.cc | dsc.gg/matchatea",
 	Icon = 241778280,
 	NotifySide = "Right",
