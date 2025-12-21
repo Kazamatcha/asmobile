@@ -458,7 +458,6 @@ local Window = Library:CreateWindow({
 	Icon = 241778280,
 	NotifySide = "Right",
 	ShowCustomCursor = false,
-    Compact = true,
     AutoShow = true,
     MobileButtonsSide = "Left"
 })
