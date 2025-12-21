@@ -472,7 +472,6 @@ local ownerList = {
     ["anhaycogihontoi"] = true,
     ["anhchongyeuvo"] = true,
     ["anhchangm53"] = true,
-    ["PrimalSlime200560"] = true,
 }
 
 getgenv().premiumUsers = {
