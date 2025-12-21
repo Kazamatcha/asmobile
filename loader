@@ -7731,8 +7731,8 @@ local AnimationGroup = Tabs.Character:AddRightGroupbox('Animation')
 getgenv().Matcha.Dance = {
     Enabled = false,
     Playing = false,
-    Selected = "Baby Queen - Bouncy Twirl",
-    AnimationId = "14352343065"
+    Selected = "Float",
+    AnimationId = "112089880074848"
 }
 
 local DanceList = {
@@ -7750,33 +7750,56 @@ local DanceList = {
     ["Rampage"] = "139658061151500",
     ["Rambunctious"] = "85916053135662",
     ["Griddy"] = "121966805049108",
-    ["Orange Justice"] = "78927657777256"
+    ["Orange Justice"] = "78927657777256",
+    ["Float Stylish"] = "112089880074848",
+    ["Float in clouds"] = "116370641960604"
 }
 
 local danceTrack = nil
 
 local function loadDance(name)
     local char = localPlayer.Character
-    if not char or not char:FindFirstChild("Humanoid") then return end
+    if not char then return end
+    
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return end
 
     if danceTrack then
         danceTrack:Stop()
         danceTrack:Destroy()
-        danceTrack = nil
     end
 
     local animId = DanceList[name]
     if animId then
         local anim = Instance.new("Animation")
         anim.AnimationId = "rbxassetid://" .. animId
-        danceTrack = char.Humanoid:LoadAnimation(anim)
+
+        danceTrack = hum:LoadAnimation(anim)
         danceTrack.Priority = Enum.AnimationPriority.Action
+        danceTrack.Looped = true
+        
         if getgenv().Matcha.Dance.Playing then
-            danceTrack.Looped = true
             danceTrack:Play()
         end
     end
 end
+
+localPlayer.CharacterAdded:Connect(function(char)
+    -- chờ humanoid sinh ra
+    local hum = char:WaitForChild("Humanoid")
+
+    -- reset track cũ
+    if danceTrack then
+        danceTrack:Stop()
+        danceTrack:Destroy()
+        danceTrack = nil
+    end
+
+    -- load lại animation đã chọn nếu toggle đang bật
+    if getgenv().Matcha.Dance.Playing then
+        loadDance(getgenv().Matcha.Dance.Selected)
+    end
+end)
 
 AnimationGroup:AddDropdown('DanceSelect', {
     Values = (function()
