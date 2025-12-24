@@ -25,6 +25,7 @@ local premiumUsers = {
     "Newproarley",
     "Bannanaman3160",
     "s4b2xalt", -- TẠM THỜI THÊM VÀO ĐÂY ĐỂ FIX
+    "lIIJoaco",
 }
 
 local premiumBypassUsers = {
