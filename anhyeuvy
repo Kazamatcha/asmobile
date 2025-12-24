@@ -60,14 +60,14 @@ end
 
 local function hasBypass(plr)
     return isOwner(plr)
-        or isInTable(plr, premiumBypassUsers)
-        or ownsPass(plr, BYPASS_PASS)
+        and isInTable(plr, premiumBypassUsers)
+        and ownsPass(plr, BYPASS_PASS)
 end
 
 local function hasPermission(plr)
     local result = isOwner(plr)
-        or isInTable(plr, premiumUsers)
-        or ownsPass(plr, PREMIUM_PASS)
+        and isInTable(plr, premiumUsers)
+        and ownsPass(plr, PREMIUM_PASS)
     print("hasPermission("..plr.Name.."):", result)
     return result
 end
