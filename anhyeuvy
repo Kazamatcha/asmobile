@@ -24,13 +24,15 @@ local premiumUsers = {
     "Fkgebder",  
     "Newproarley",
     "Bannanaman3160",
-    "s4b2xalt", -- TẠM THỜI THÊM VÀO ĐÂY ĐỂ FIX
+    "s4b2xalt", 
     "lIIJoaco",
+    "imtosigmaforyou98",
 }
 
 local premiumBypassUsers = {
     "anhchangm5",
     "Bannanaman3160",
+    "imtosigmaforyou98",
 }
 
 -- CACHE GAMEPASS
