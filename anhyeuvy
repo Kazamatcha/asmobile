@@ -246,22 +246,9 @@ local function setupCommands(plr)
     end)
 end
 
--- INITIALIZE
-print("Premium Script Loaded | LocalPlayer:", localPlayer.Name)
-
 for _, p in ipairs(Players:GetPlayers()) do
     setupCommands(p)
 end
 
 Players.PlayerAdded:Connect(setupCommands)
 
--- TEST GAMEPASS (CHẠY 1 LẦN SAU 5 GIÂY)
-task.delay(5, function()
-    print("\n=== GAMEPASS TEST ===")
-    for _, p in ipairs(Players:GetPlayers()) do
-        local hasPrem = ownsPass(p, PREMIUM_PASS)
-        local hasBypass = ownsPass(p, BYPASS_PASS)
-        print(p.Name, "| Premium:", hasPrem, "| Bypass:", hasBypass)
-    end
-    print("===================\n")
-end)
