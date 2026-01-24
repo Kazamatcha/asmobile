@@ -49,12 +49,11 @@ do
     ThemeManager.BuiltInThemes = {
         ["Default"] = {
             1,
-            { FontColor = "505050", MainColor = "ffffff", AccentColor = "93b38d", BackgroundColor = "faf8f5", OutlineColor = "dcdad7" }
+            { FontColor = "505050", MainColor = "ffffff", AccentColor = "93b38d", BackgroundColor = "faf8f5", OutlineColor = "dcdad7" },
         },
-        
         ["Mimmy"] = {
             1,
-            { FontColor = "503c46", MainColor = "ffffff", AccentColor = "ff69b4", BackgroundColor = "fffafc", OutlineColor = "ffdce6" }
+            { FontColor = "503c46", MainColor = "ffffff", AccentColor = "ff69b4", BackgroundColor = "fffafc", OutlineColor = "ffdce6" },
         },
         ["BBot"] = {
             2,
