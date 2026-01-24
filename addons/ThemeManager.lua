@@ -55,7 +55,7 @@ do
         ["Mimmy"] = {
             1,
             { FontColor = "503c46", MainColor = "ffffff", AccentColor = "ff69b4", BackgroundColor = "fffafc", OutlineColor = "ffdce6" }
-        }
+        },
         },
         ["BBot"] = {
             2,
