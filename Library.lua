@@ -218,7 +218,7 @@ if RunService:IsStudio() then
         Library.MinSize = Vector2.new(480, 240)
     else
         Library.IsMobile = false
-        Library.MinSize = Vector2.new(450, 360)
+        Library.MinSize = Vector2.new(500, 360)
     end
 else
     pcall(function()
@@ -284,7 +284,7 @@ local Templates = {
         AutoShow = true,
         Center = false,
         Resizable = true,
-        SearchbarSize = UDim2.fromScale(1, 1),
+        SearchbarSize = UDim2.fromScale(0.5, 1),
         GlobalSearch = true,
         CornerRadius = 8,
         NotifySide = "Right",
@@ -295,7 +295,7 @@ local Templates = {
         UnlockMouseWhileOpen = true,
         Compact = false,
         EnableSidebarResize = true,
-        SidebarMinWidth = 100,
+        SidebarMinWidth = 80,
         SidebarCompactWidth = 54,
         SidebarCollapseThreshold = 0.5,
         SidebarHighlightCallback = nil,
