@@ -47,7 +47,7 @@ do
     ThemeManager.Library = nil
     ThemeManager.AppliedToTab = false
     ThemeManager.BuiltInThemes = {
-        ["Default"] = {
+        ["Matcha"] = {
             1,
             { FontColor = "505050", MainColor = "ffffff", AccentColor = "93b38d", BackgroundColor = "faf8f5", OutlineColor = "dcdad7" },
         },
@@ -228,7 +228,7 @@ do
     end
 
     function ThemeManager:LoadDefault()
-        local theme = "Default"
+        local theme = "Matcha"
         local content = isfile(self.Folder .. "/themes/default.txt") and readfile(self.Folder .. "/themes/default.txt")
 
         local isDefault = true
@@ -270,8 +270,8 @@ do
                 LibraryScheme[field] = Color3.fromHex(theme[field])
 
             else
-                FinalTheme[field] = ThemeManager.BuiltInThemes["Default"][2][field]
-                LibraryScheme[field] = Color3.fromHex(ThemeManager.BuiltInThemes["Default"][2][field])
+                FinalTheme[field] = ThemeManager.BuiltInThemes["Matcha"][2][field]
+                LibraryScheme[field] = Color3.fromHex(ThemeManager.BuiltInThemes["Matcha"][2][field])
             end
         end
 
@@ -293,7 +293,7 @@ do
         end
 
         self.Library.Scheme = LibraryScheme
-        self.BuiltInThemes["Default"] = { 1, FinalTheme }
+        self.BuiltInThemes["Matcha"] = { 1, FinalTheme }
 
         self.Library:UpdateColorsUsingRegistry()
     end
