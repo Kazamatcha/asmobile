@@ -189,18 +189,22 @@ local Library = {
     CornerRadius = 4,
 
     IsLightTheme = false,
-    Scheme = {
-        BackgroundColor = Color3.fromRGB(0, 0, 0),
-        MainColor = Color3.fromRGB(0, 0, 0),
-        AccentColor = Color3.fromRGB(92, 232, 35),
-        OutlineColor = Color3.fromRGB(27,27,27),
-        FontColor = Color3.fromRGB(255, 255, 255),
-        Font = Font.fromEnum(Enum.Font.Code),
-
-        Red = Color3.fromRGB(255, 50, 50),
-        Dark = Color3.new(0, 0, 0),
-        White = Color3.new(1, 1, 1),
-    },
+	Scheme = {
+	    BackgroundColor = Color3.fromRGB(250, 248, 245), -- Soft cream
+	    MainColor = Color3.fromRGB(255, 255, 255), -- Pure white
+	    AccentColor = Color3.fromRGB(147, 179, 141), -- Matcha green
+	    OutlineColor = Color3.fromRGB(220, 218, 215), -- Light border
+	    FontColor = Color3.fromRGB(80, 80, 80), -- Dark gray text
+	    Font = Font.fromEnum(Enum.Font.Gotham),
+	    
+	    -- Extra colors
+	    Secondary = Color3.fromRGB(200, 220, 195), -- Light matcha
+	    Hover = Color3.fromRGB(119, 158, 113), -- Deep matcha
+	    TextLight = Color3.fromRGB(120, 120, 120), -- Light text
+	    Red = Color3.fromRGB(255, 50, 50),
+	    Dark = Color3.new(0, 0, 0),
+	    White = Color3.new(1, 1, 1),
+	},
 
     Registry = {},
     DPIRegistry = {},
