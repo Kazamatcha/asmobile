@@ -56,7 +56,6 @@ do
             1,
             { FontColor = "503c46", MainColor = "ffffff", AccentColor = "ff69b4", BackgroundColor = "fffafc", OutlineColor = "ffdce6" }
         },
-        },
         ["BBot"] = {
             2,
             { FontColor = "ffffff", MainColor = "1e1e1e", AccentColor = "7e48a3", BackgroundColor = "232323", OutlineColor = "141414" },
