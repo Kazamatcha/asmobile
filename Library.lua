@@ -225,7 +225,7 @@ else
         Library.DevicePlatform = UserInputService:GetPlatform()
     end)
     Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS)
-    Library.MinSize = Library.IsMobile and Vector2.new(480, 240) or Vector2.new(400, 360)
+    Library.MinSize = Library.IsMobile and Vector2.new(480, 240) or Vector2.new(500, 360)
 end
 
 local Templates = {
