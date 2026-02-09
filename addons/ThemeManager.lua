@@ -47,13 +47,13 @@ do
     ThemeManager.Library = nil
     ThemeManager.AppliedToTab = false
     ThemeManager.BuiltInThemes = {
-        ["Matcha"] = {
+        ["Bunny"] = {
             1,
-            { FontColor = "505050", MainColor = "ffffff", AccentColor = "93b38d", BackgroundColor = "faf8f5", OutlineColor = "dcdad7" },
+            { FontColor = "503c46", MainColor = "ffffff", AccentColor = "e4aeae", BackgroundColor = "fffafc", OutlineColor = "ffdce6" },
         },
-        ["Mimmy"] = {
-            1,
-            { FontColor = "503c46", MainColor = "ffffff", AccentColor = "ff69b4", BackgroundColor = "fffafc", OutlineColor = "ffdce6" },
+        ["Matcha"] = {
+            2,
+            { FontColor = "505050", MainColor = "ffffff", AccentColor = "93b38d", BackgroundColor = "faf8f5", OutlineColor = "dcdad7" },
         },
         ["BBot"] = {
             2,
@@ -228,7 +228,7 @@ do
     end
 
     function ThemeManager:LoadDefault()
-        local theme = "Matcha"
+        local theme = "Bunny"
         local content = isfile(self.Folder .. "/themes/default.txt") and readfile(self.Folder .. "/themes/default.txt")
 
         local isDefault = true
