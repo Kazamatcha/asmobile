@@ -190,11 +190,11 @@ local Library = {
 
     IsLightTheme = false,
 	Scheme = {
-	    BackgroundColor = Color3.fromRGB(250, 248, 245), -- Soft cream
+	    BackgroundColor = Color3.fromRGB(255, 250, 252), -- Soft cream
 	    MainColor = Color3.fromRGB(255, 255, 255), -- Pure white
-	    AccentColor = Color3.fromRGB(147, 179, 141), -- Matcha green
-	    OutlineColor = Color3.fromRGB(220, 218, 215), -- Light border
-	    FontColor = Color3.fromRGB(80, 80, 80), -- Dark gray text
+	    AccentColor = Color3.fromRGB(228, 174, 174), -- Matcha green
+	    OutlineColor = Color3.fromRGB(255, 220, 230), -- Light border
+	    FontColor = Color3.fromRGB(80, 60, 70), -- Dark gray text
 	    Font = Font.fromEnum(Enum.Font.Gotham),
 	    
 	    -- Extra colors
