@@ -186,7 +186,7 @@ local Library = {
 
     MinSize = Vector2.new(480, 360),
     DPIScale = 1,
-    CornerRadius = 4,
+    CornerRadius = 8,
 
     IsLightTheme = false,
 	Scheme = {
@@ -279,12 +279,12 @@ local Templates = {
         Title = "No Title",
         Footer = "No Footer",
         Position = UDim2.fromOffset(6, 6),
-        Size = UDim2.fromOffset(520, 600),
+        Size = UDim2.fromOffset(550, 500),
         IconSize = UDim2.fromOffset(30, 30),
         AutoShow = true,
-        Center = false,
+        Center = true,
         Resizable = true,
-        SearchbarSize = UDim2.fromScale(0.5, 1),
+        SearchbarSize = UDim2.fromScale(1, 1),
         GlobalSearch = true,
         CornerRadius = 8,
         NotifySide = "Right",
