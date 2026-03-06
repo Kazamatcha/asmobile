@@ -49,7 +49,7 @@ do
     ThemeManager.BuiltInThemes = {
         ["Bunny"] = {
             1,
-            { FontColor = "503c46", MainColor = "120112", AccentColor = "e4aeae", BackgroundColor = "000000", OutlineColor = "240021" },
+            { FontColor = "503c46", MainColor = "ffffff", AccentColor = "e4aeae", BackgroundColor = "fffafc", OutlineColor = "ffdce6" },
         },
         ["Matcha"] = {
             2,
