@@ -7,22 +7,22 @@ local tweenService = game:GetService("TweenService")
 
 local espModule = {}
 espModule.__index = espModule
-
+getgenv().gradient3 = Color3.fromRGB(255, 255, 255)
 espModule.Config = {
     TeamCheck = true,
     ESPDistance = 1000,
-    BoxColor = Color3.new(0.403922, 0.34902, 0.701961),
+    BoxColor = Color3.fromRGB(255, 255, 255),
     BoxGradientEnabled = false,
-    BoxGradientColor1 = Color3.new(0.403922, 0.34902, 0.701961),
-    BoxGradientColor2 = Color3.new(0.8, 0.4, 1),
+    BoxGradientColor1 = Color3.fromRGB(255, 255, 255),
+    BoxGradientColor2 = Color3.fromRGB(255, 255, 255),
     BoxFillTransparency = 0.5,
     RotateSpeed = 120,
     BoxOutlineEnabled = true,
     BoxOutlineColor = Color3.new(0, 0, 0),
-    SkeletonColor = Color3.new(0.403922, 0.34902, 0.701961),
-    ChamsColor = Color3.new(0.403922, 0.34902, 0.701961),
+    SkeletonColor = Color3.fromRGB(255, 255, 255),
+    ChamsColor = Color3.fromRGB(255, 255, 255),
     TracerOrigin = "Bottom Screen",
-    TracerColor = Color3.new(0.403922, 0.34902, 0.701961),
+    TracerColor = Color3.fromRGB(255, 255, 255),
     ChamsFillTransparency = 0.5,
     ChamsOutlineColor = Color3.new(1, 1, 1),
     HealthBarLerpSpeed = 0.2,
@@ -134,7 +134,7 @@ function espModule:CreateBox(_)
     boxDrawings.Gradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, self.Config.BoxGradientColor1),
         ColorSequenceKeypoint.new(0.5, self.Config.BoxGradientColor2),
-        ColorSequenceKeypoint.new(1, self.Config.BoxGradientColor1)
+        ColorSequenceKeypoint.new(1, gradient3)
     })
     boxDrawings.Stroke.Parent = boxDrawings.FillFrame
     boxDrawings.Stroke.Thickness = 1.2
