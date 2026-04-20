@@ -17,21 +17,16 @@ espModule.Config = {
     BoxGradientColor2 = Color3.fromRGB(255, 255, 255),
     BoxFillTransparency = 0.5,
     RotateSpeed = 120,
-    BoxOutlineEnabled = true,
-    BoxOutlineColor = Color3.new(0, 0, 0),
     SkeletonColor = Color3.fromRGB(255, 255, 255),
-    ChamsColor = Color3.fromRGB(255, 255, 255),
-    TracerOrigin = "Bottom Screen",
-    TracerColor = Color3.fromRGB(255, 255, 255),
+    ChamsColor = Color3.new(0.403922, 0.349020, 0.701961),
+    TracerOrigin = "Top Screen",
+    TracerColor = Color3.new(0.403922, 0.349020, 0.701961),
     ChamsFillTransparency = 0.5,
     ChamsOutlineColor = Color3.new(1, 1, 1),
     HealthBarLerpSpeed = 0.2,
-    HealthBarColor1 = Color3.fromRGB(0, 255, 0),
-    HealthBarColor2 = Color3.fromRGB(255, 255, 0),
-    HealthBarColor3 = Color3.fromRGB(255, 0, 0),
-    ArmorBarColor1 = Color3.fromRGB(0, 0, 255),
-    ArmorBarColor2 = Color3.fromRGB(135, 206, 235),
-    ArmorBarColor3 = Color3.fromRGB(1, 0, 0),
+    HealthBarColor1 = Color3.fromRGB(170, 85, 255),
+    HealthBarColor2 = Color3.fromRGB(120, 40, 180),
+    HealthBarColor3 = Color3.fromRGB(80, 0, 80),
     RingColor = Color3.fromRGB(255, 255, 255),
     ScanSpeed = 2.5,
     ScanHeight = 3.5,
@@ -45,7 +40,6 @@ espModule.State = {
     SkeletonEnabled = false,
     HealthTextEnabled = false,
     HealthBarEnabled = false,
-    ArmorBarEnabled = false,
     TracerEnabled = false,
     ChamsEnabled = false,
     RingEnabled = false
@@ -104,15 +98,8 @@ function espModule:CreateBox(_)
         HealthBarOutline = Instance.new("UIStroke"),
         HealthBar = Instance.new("Frame"),
         HealthBarGradient = Instance.new("UIGradient"),
-        ArmorText = Instance.new("TextLabel"),
-        ArmorBarBackground = Instance.new("Frame"),
-        ArmorBarOutline = Instance.new("UIStroke"),
-        ArmorBar = Instance.new("Frame"),
-        ArmorBarGradient = Instance.new("UIGradient"),
         CurrentHealth = 100,
         TargetHealth = 100,
-        CurrentArmor = 130,
-        TargetArmor = 130,
         FillFrame = Instance.new("Frame"),
         Gradient = Instance.new("UIGradient"),
         Stroke = Instance.new("UIStroke")
@@ -122,9 +109,6 @@ function espModule:CreateBox(_)
     boxDrawings.HealthText.Parent = self.EspGui
     boxDrawings.HealthBarBackground.Parent = self.EspGui
     boxDrawings.HealthBar.Parent = self.EspGui
-    boxDrawings.ArmorText.Parent = self.EspGui
-    boxDrawings.ArmorBarBackground.Parent = self.EspGui
-    boxDrawings.ArmorBar.Parent = self.EspGui
     boxDrawings.FillFrame.Parent = self.EspGui
     
     boxDrawings.FillFrame.BorderSizePixel = 0
@@ -136,24 +120,12 @@ function espModule:CreateBox(_)
         ColorSequenceKeypoint.new(0.5, self.Config.BoxGradientColor2),
         ColorSequenceKeypoint.new(1, gradient3)
     })
-    boxDrawings.Stroke.Parent = boxDrawings.FillFrame
-    boxDrawings.Stroke.Thickness = 1
-    boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
-    boxDrawings.Stroke.Transparency = 0
-    boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
     
     -- Main box
     boxDrawings.Box.Thickness = 1
     boxDrawings.Box.Color = self.Config.BoxColor
     boxDrawings.Box.Filled = false
     boxDrawings.Box.Visible = false
-    
-    -- Box outline
-    boxDrawings.BoxOutline.Thickness = 1
-    boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
-    boxDrawings.BoxOutline.Filled = false
-    boxDrawings.BoxOutline.Visible = false
-    boxDrawings.BoxOutline.Transparency = 0
     
     -- Gradient lines
     boxDrawings.BoxTop.Thickness = 1
@@ -190,16 +162,6 @@ function espModule:CreateBox(_)
     boxDrawings.HealthText.TextStrokeTransparency = 0
     boxDrawings.HealthText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
     
-    -- Armor text
-    boxDrawings.ArmorText.BackgroundTransparency = 1
-    boxDrawings.ArmorText.TextSize = 11
-    boxDrawings.ArmorText.Font = Enum.Font.Code
-    boxDrawings.ArmorText.TextXAlignment = Enum.TextXAlignment.Left
-    boxDrawings.ArmorText.TextYAlignment = Enum.TextYAlignment.Center
-    boxDrawings.ArmorText.Visible = false
-    boxDrawings.ArmorText.TextStrokeTransparency = 0
-    boxDrawings.ArmorText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    
     -- Health bar background
     boxDrawings.HealthBarBackground.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
     boxDrawings.HealthBarBackground.BackgroundTransparency = 0.45
@@ -223,31 +185,6 @@ function espModule:CreateBox(_)
         ColorSequenceKeypoint.new(0, self.Config.HealthBarColor1),
         ColorSequenceKeypoint.new(0.5, self.Config.HealthBarColor2),
         ColorSequenceKeypoint.new(1, self.Config.HealthBarColor3)
-    })
-    
-    -- Armor bar background
-    boxDrawings.ArmorBarBackground.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
-    boxDrawings.ArmorBarBackground.BackgroundTransparency = 0.45
-    boxDrawings.ArmorBarBackground.BorderSizePixel = 0
-    boxDrawings.ArmorBarBackground.Visible = false
-    
-    boxDrawings.ArmorBarOutline.Parent = boxDrawings.ArmorBarBackground
-    boxDrawings.ArmorBarOutline.Color = Color3.fromRGB(0, 0, 0)
-    boxDrawings.ArmorBarOutline.Transparency = 0.2
-    boxDrawings.ArmorBarOutline.Thickness = 1
-    boxDrawings.ArmorBarOutline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    
-    -- Armor bar
-    boxDrawings.ArmorBar.BackgroundTransparency = 0
-    boxDrawings.ArmorBar.BorderSizePixel = 0
-    boxDrawings.ArmorBar.Visible = false
-    
-    boxDrawings.ArmorBarGradient.Parent = boxDrawings.ArmorBar
-    boxDrawings.ArmorBarGradient.Rotation = 90
-    boxDrawings.ArmorBarGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, self.Config.ArmorBarColor1),
-        ColorSequenceKeypoint.new(0.5, self.Config.ArmorBarColor2),
-        ColorSequenceKeypoint.new(1, self.Config.ArmorBarColor3)
     })
     
     return boxDrawings
@@ -339,7 +276,6 @@ end
 function espModule:ClearBox(targetPlayer)
     if self.Caches.BoxCache[targetPlayer] then
         self.Caches.BoxCache[targetPlayer].Box:Remove()
-        self.Caches.BoxCache[targetPlayer].BoxOutline:Remove()
         self.Caches.BoxCache[targetPlayer].BoxTop:Remove()
         self.Caches.BoxCache[targetPlayer].BoxBottom:Remove()
         self.Caches.BoxCache[targetPlayer].BoxLeft:Remove()
@@ -389,7 +325,6 @@ function espModule:HideBox(targetPlayer)
     if self.Caches.BoxCache[targetPlayer] then
         local boxDrawings = self.Caches.BoxCache[targetPlayer]
         boxDrawings.Box.Visible = false
-        boxDrawings.BoxOutline.Visible = false
         boxDrawings.FillFrame.Visible = false
         boxDrawings.Name.Visible = false
         boxDrawings.Distance.Visible = false
@@ -417,8 +352,7 @@ function espModule:UpdateBox()
                        self.State.NameEnabled or 
                        self.State.DistanceEnabled or 
                        self.State.HealthTextEnabled or 
-                       self.State.HealthBarEnabled or 
-                       self.State.ArmorBarEnabled
+                       self.State.HealthBarEnabled
 
     if shouldDraw then
         -- Kiểm tra LocalPlayer
@@ -498,36 +432,21 @@ function espModule:UpdateBox()
                                         if self.State.BoxEnabled then
                                             -- Luôn set visible false trước để reset
                                             boxDrawings.Box.Visible = false
-                                            boxDrawings.BoxOutline.Visible = false
                                             boxDrawings.FillFrame.Visible = false
-
+                                            boxDrawings.Box.Size = Vector2.new(width, height)
+                                            boxDrawings.Box.Position = topLeft
+                                            boxDrawings.Box.Color = self.Config.BoxColor or Color3.new(1,1,1)
+                                            boxDrawings.Box.Visible = true
                                             if self.Config.BoxGradientEnabled then
                                                 boxDrawings.FillFrame.Position = UDim2.fromOffset(topLeft.X, topLeft.Y)
                                                 boxDrawings.FillFrame.Size = UDim2.fromOffset(width, height)
                                                 boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency or 0.5
                                                 boxDrawings.FillFrame.Visible = true
-                                                
-                                                boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
-                                                boxDrawings.Stroke.Color = self.Config.BoxOutlineColor or Color3.new(1,1,1)
-                                            else
-                                                boxDrawings.Box.Size = Vector2.new(width, height)
-                                                boxDrawings.Box.Position = topLeft
-                                                boxDrawings.Box.Color = self.Config.BoxColor or Color3.new(1,1,1)
-                                                boxDrawings.Box.Visible = true
-                                                
-                                                if self.Config.BoxOutlineEnabled then
-                                                    boxDrawings.BoxOutline.Size = Vector2.new(width, height)
-                                                    boxDrawings.BoxOutline.Position = topLeft
-                                                    boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor or Color3.new(0,0,0)
-                                                    boxDrawings.BoxOutline.Visible = true
-                                                end
                                             end
                                         else
                                             -- Ẩn hết nếu tắt
                                             boxDrawings.Box.Visible = false
-                                            boxDrawings.BoxOutline.Visible = false
                                             boxDrawings.FillFrame.Visible = false
-                                            if boxDrawings.Stroke then boxDrawings.Stroke.Enabled = false end
                                         end
 
                                         -- [[ 2. VẼ TÊN ]]
@@ -575,11 +494,11 @@ function espModule:UpdateBox()
 
                                             if self.State.HealthBarEnabled then
                                                 local barHeight = height * (health_per / 100)
-                                                boxDrawings.HealthBar.Size = UDim2.new(0, 1, 0, barHeight) 
+                                                boxDrawings.HealthBar.Size = UDim2.new(0, 2, 0, barHeight) 
                                                 boxDrawings.HealthBar.Position = UDim2.new(0, barX, 0, barY + height - barHeight)
                                                 boxDrawings.HealthBar.Visible = true
                                                 
-                                                boxDrawings.HealthBarBackground.Size = UDim2.new(0, 1, 0, height)
+                                                boxDrawings.HealthBarBackground.Size = UDim2.new(0, 2, 0, height)
                                                 boxDrawings.HealthBarBackground.Position = UDim2.new(0, barX, 0, barY)
                                                 boxDrawings.HealthBarBackground.Visible = true
                                                 boxDrawings.HealthBarOutline.Enabled = true
@@ -593,39 +512,6 @@ function espModule:UpdateBox()
                                             boxDrawings.HealthBar.Visible = false
                                             boxDrawings.HealthBarBackground.Visible = false
                                             boxDrawings.HealthBarOutline.Enabled = false
-                                        end
-
-                                        -- [[ 5. VẼ ARMOR BAR ]]
-                                        if self.State.ArmorBarEnabled then
-                                            local bodyEffects = otherCharacter:FindFirstChild("BodyEffects")
-                                            local armorVal = (bodyEffects and bodyEffects:FindFirstChild("Armor")) and bodyEffects.Armor.Value or 0
-                                            local armor_per = math.floor((armorVal / 200) * 100) -- Chỉnh max armor thành 200 cho Dahood (hoặc giữ 130 tùy game)
-
-                                            local armor_bar_x = barX - 6
-                                            local armor_bar_height = height * (armor_per / 100)
-                                            
-                                            boxDrawings.ArmorBar.Size = UDim2.new(0, 2, 0, armor_bar_height)
-                                            boxDrawings.ArmorBar.Position = UDim2.new(0, armor_bar_x, 0, barY + height - armor_bar_height)
-                                            boxDrawings.ArmorBar.Visible = true
-                                            
-                                            boxDrawings.ArmorBarBackground.Size = UDim2.new(0, 2, 0, height)
-                                            boxDrawings.ArmorBarBackground.Position = UDim2.new(0, armor_bar_x, 0, barY)
-                                            boxDrawings.ArmorBarBackground.Visible = true
-                                            boxDrawings.ArmorBarOutline.Enabled = true
-                                            
-                                            -- Armor Text (nếu cần dùng chung logic cũ)
-                                            if self.State.HealthTextEnabled and armor_per > 0 then
-                                                boxDrawings.ArmorText.Position = UDim2.new(0, armor_bar_x - 15, 0, barY + height - armor_bar_height)
-                                                boxDrawings.ArmorText.Text = tostring(armor_per)
-                                                boxDrawings.ArmorText.Visible = true
-                                            else
-                                                boxDrawings.ArmorText.Visible = false
-                                            end
-                                        else
-                                            boxDrawings.ArmorBar.Visible = false
-                                            boxDrawings.ArmorBarBackground.Visible = false
-                                            boxDrawings.ArmorBarOutline.Enabled = false
-                                            boxDrawings.ArmorText.Visible = false
                                         end
 
                                     else
