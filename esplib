@@ -137,7 +137,7 @@ function espModule:CreateBox(_)
         ColorSequenceKeypoint.new(1, gradient3)
     })
     boxDrawings.Stroke.Parent = boxDrawings.FillFrame
-    boxDrawings.Stroke.Thickness = 1.2
+    boxDrawings.Stroke.Thickness = 1
     boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
     boxDrawings.Stroke.Transparency = 0
     boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
@@ -149,7 +149,7 @@ function espModule:CreateBox(_)
     boxDrawings.Box.Visible = false
     
     -- Box outline
-    boxDrawings.BoxOutline.Thickness = 3
+    boxDrawings.BoxOutline.Thickness = 1
     boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
     boxDrawings.BoxOutline.Filled = false
     boxDrawings.BoxOutline.Visible = false
@@ -166,14 +166,14 @@ function espModule:CreateBox(_)
     boxDrawings.BoxRight.Visible = false
     
     -- Text elements
-    boxDrawings.Name.Size = 13
+    boxDrawings.Name.Size = 11
     boxDrawings.Name.Color = Color3.new(1, 1, 1)
     boxDrawings.Name.Outline = true
     boxDrawings.Name.Center = true
     boxDrawings.Name.Visible = false
     boxDrawings.Name.Font = 2
     
-    boxDrawings.Distance.Size = 13
+    boxDrawings.Distance.Size = 11
     boxDrawings.Distance.Color = Color3.new(1, 1, 1)
     boxDrawings.Distance.Outline = true
     boxDrawings.Distance.Center = true
@@ -182,7 +182,7 @@ function espModule:CreateBox(_)
     
     -- Health text
     boxDrawings.HealthText.BackgroundTransparency = 1
-    boxDrawings.HealthText.TextSize = 12
+    boxDrawings.HealthText.TextSize = 11
     boxDrawings.HealthText.Font = Enum.Font.Code
     boxDrawings.HealthText.TextXAlignment = Enum.TextXAlignment.Left
     boxDrawings.HealthText.TextYAlignment = Enum.TextYAlignment.Center
@@ -192,7 +192,7 @@ function espModule:CreateBox(_)
     
     -- Armor text
     boxDrawings.ArmorText.BackgroundTransparency = 1
-    boxDrawings.ArmorText.TextSize = 12
+    boxDrawings.ArmorText.TextSize = 11
     boxDrawings.ArmorText.Font = Enum.Font.Code
     boxDrawings.ArmorText.TextXAlignment = Enum.TextXAlignment.Left
     boxDrawings.ArmorText.TextYAlignment = Enum.TextYAlignment.Center
@@ -483,7 +483,7 @@ function espModule:UpdateBox()
 
                                         -- Tính toán khung
                                         local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
-                                        local width = height * 0.60 -- Giảm độ rộng một chút cho gọn (0.60)
+                                        local width = height * 0.60
                                         
                                         local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
                                         local topLeft = centerPos - Vector2.new(width / 2, height / 2)
@@ -575,11 +575,11 @@ function espModule:UpdateBox()
 
                                             if self.State.HealthBarEnabled then
                                                 local barHeight = height * (health_per / 100)
-                                                boxDrawings.HealthBar.Size = UDim2.new(0, 2, 0, barHeight) -- Size 2 cho mượt
+                                                boxDrawings.HealthBar.Size = UDim2.new(0, 1, 0, barHeight) 
                                                 boxDrawings.HealthBar.Position = UDim2.new(0, barX, 0, barY + height - barHeight)
                                                 boxDrawings.HealthBar.Visible = true
                                                 
-                                                boxDrawings.HealthBarBackground.Size = UDim2.new(0, 2, 0, height)
+                                                boxDrawings.HealthBarBackground.Size = UDim2.new(0, 1, 0, height)
                                                 boxDrawings.HealthBarBackground.Position = UDim2.new(0, barX, 0, barY)
                                                 boxDrawings.HealthBarBackground.Visible = true
                                                 boxDrawings.HealthBarOutline.Enabled = true
